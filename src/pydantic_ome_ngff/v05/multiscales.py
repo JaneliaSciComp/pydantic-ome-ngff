@@ -21,7 +21,7 @@ class MultiscaleDataset(StrictBaseModel):
     ]
 
 
-class Multiscales(StrictBaseModel):
+class Multiscale(StrictBaseModel):
     # SPEC: why is this optional?
     # SPEC: untyped!
     version: Optional[Any] = version
@@ -53,12 +53,13 @@ class Multiscales(StrictBaseModel):
             the `name` field of a Multiscales object should not be None.
             """
             )
+        return name
 
     @validator("axes")
     def normative_axes(cls, axes):
         axis_types = [a.type for a in axes]
         type_census = {
-            name: sum(filter(axis_types, lambda v: v == name))
+            name: sum(map(lambda v: v == name, axis_types))
             for name in AxisType._member_names_
         }
 
@@ -105,3 +106,4 @@ class Multiscales(StrictBaseModel):
                 Only 1 custom axis is allowed.
                 """
             )
+        return axes
