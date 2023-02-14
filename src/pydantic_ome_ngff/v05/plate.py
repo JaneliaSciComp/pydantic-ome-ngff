@@ -1,7 +1,9 @@
-from pydantic import BaseModel, Field, validator, ValidationError, PositiveInt
-from typing import Any, Tuple, List, Optional
+from typing import List, Optional
+
+from pydantic import BaseModel, PositiveInt
+
 from pydantic_ome_ngff.v05 import version as v05_version
-import warnings
+
 
 class Acquisition(BaseModel):
     id: PositiveInt
