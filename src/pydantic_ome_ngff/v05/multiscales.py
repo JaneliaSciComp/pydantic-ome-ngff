@@ -21,7 +21,7 @@ class MultiscaleDataset(StrictBaseModel):
     ]
 
 
-class MultiscaleMetadata(StrictBaseModel):
+class Multiscales(StrictBaseModel):
     # SPEC: why is this optional?
     # SPEC: untyped!
     version: Optional[Any] = version

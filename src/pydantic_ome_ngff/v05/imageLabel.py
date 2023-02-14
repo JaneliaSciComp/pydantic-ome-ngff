@@ -19,7 +19,7 @@ class Properties(BaseModel):
     label_value: int = Field(..., alias="label-value")
 
 
-class ImageLabelMetadata(BaseModel):
+class ImageLabel(BaseModel):
     version: Optional[str] = v05_version
     colors: Optional[List[Color]]
     properties: Optional[Properties]
