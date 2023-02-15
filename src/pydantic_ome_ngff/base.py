@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import TypeVar, Sequence, Dict
 
 
 class StrictBaseModel(BaseModel):
@@ -8,6 +9,17 @@ class StrictBaseModel(BaseModel):
 
     class config:
         extra = "forbid"
+
+
+T = TypeVar("T")
+
+
+def census(values: Sequence[T]) -> Dict[T, int]:
+    """
+    Generate a dictionary of value : frequency pairs from a
+    sequence of (hashable) values.
+    """
+    return {k: values.count(k) for k in set(values)}
 
 
 def warning_on_one_line(message, category, filename, lineno, file=None, line=None):

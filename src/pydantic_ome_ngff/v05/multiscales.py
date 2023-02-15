@@ -1,9 +1,9 @@
 import warnings
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import Field, ValidationError, validator
+from pydantic import Field, validator
 
-from pydantic_ome_ngff.base import StrictBaseModel, warning_on_one_line
+from pydantic_ome_ngff.base import StrictBaseModel, warning_on_one_line, census
 from pydantic_ome_ngff.v05 import version
 from pydantic_ome_ngff.v05.axes import Axis, AxisType
 from pydantic_ome_ngff.v05.coordinateTransformations import (
@@ -57,6 +57,13 @@ class Multiscale(StrictBaseModel):
 
     @validator("axes")
     def normative_axes(cls, axes):
+        axis_names = [a.name for a in axes]
+        if len(set(axis_names)) < len(axes):
+            name_count = census([a.name for a in axes])
+            dupes = tuple(filter(lambda v: name_count[v] > 1, name_count.keys()))
+            raise ValueError(
+                f"Axis names must be unique. Axis names {dupes} are repeated."
+            )
         axis_types = [a.type for a in axes]
         type_census = {
             name: sum(map(lambda v: v == name, axis_types))
@@ -65,7 +72,7 @@ class Multiscale(StrictBaseModel):
 
         num_spaces = type_census["space"]
         if num_spaces < 2 or num_spaces > 3:
-            raise ValidationError(
+            raise ValueError(
                 f"""
                 Invalid number of space axes ({num_spaces}).
                 Only 2 or 3 space axes are allowed.
@@ -73,7 +80,7 @@ class Multiscale(StrictBaseModel):
             )
 
         elif not all(a == "space" for a in axis_types[-num_spaces:]):
-            raise ValidationError(
+            raise ValueError(
                 f"""
                 Space axes must come last.
                 Got axis ordered {axis_types}
@@ -83,7 +90,7 @@ class Multiscale(StrictBaseModel):
         num_times = type_census["time"]
 
         if num_times > 1:
-            raise ValidationError(
+            raise ValueError(
                 f"""
                 Invalid number of time axes ({num_times}).
                 Only 1 time axis is allowed."""
@@ -92,7 +99,7 @@ class Multiscale(StrictBaseModel):
         num_channels = type_census["channel"]
 
         if num_channels > 1:
-            raise ValidationError(
+            raise ValueError(
                 f"""
                 Invalid number of time axes ({num_times}).
                 Only 1 time axis is allowed.
@@ -101,7 +108,7 @@ class Multiscale(StrictBaseModel):
 
         custom_axes = set(axis_types) - set(AxisType._member_names_)
         if len(custom_axes) > 1:
-            raise ValidationError(
+            raise ValueError(
                 f"""Invalid number of custom axes ({custom_axes}).
                 Only 1 custom axis is allowed.
                 """

@@ -1,7 +1,7 @@
 import warnings
 from typing import List, Optional, Tuple
 
-from pydantic import BaseModel, Field, ValidationError, validator
+from pydantic import BaseModel, Field, validator
 
 from pydantic_ome_ngff.v05 import version as v05_version
 
@@ -54,7 +54,7 @@ class ImageLabel(BaseModel):
                     if values.count(v) > 1:
                         dupes.append(v)
 
-                raise ValidationError(
+                raise ValueError(
                     f"""
                     Duplicated label-value: {dupes}.
                     label-values must be unique across elements of `colors`

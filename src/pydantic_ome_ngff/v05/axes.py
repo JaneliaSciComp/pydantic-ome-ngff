@@ -2,7 +2,7 @@ from pydantic_ome_ngff.base import StrictBaseModel, warning_on_one_line
 from pydantic_ome_ngff.v05 import version
 import warnings
 from enum import Enum
-from typing import Any, Optional, Union
+from typing import Any, Optional
 from pydantic import validator
 
 warnings.formatwarning = warning_on_one_line
@@ -72,26 +72,26 @@ class TimeUnit(str, Enum):
 class Axis(StrictBaseModel):
     # SPEC: this should almost certainly be a string, but the spec doesn't specify the type: https://github.com/ome/ngff/blob/ee4d5dab677636a28f1f65c248a751e279a0d1fe/latest/index.bs#L245
     name: Any
-    type: Optional[Union[AxisType, str]]
-    unit: Optional[Union[TimeUnit, SpaceUnit, str]]
+    type: Optional[str]
+    units: Optional[str]
 
-    @validator("unit")
-    def normative_unit(cls, unit, values):
+    @validator("units")
+    def normative_unit(cls, units, values):
         type = values["type"]
         if type == AxisType.space:
-            if unit not in SpaceUnit.__members__:
+            if units not in SpaceUnit.__members__:
                 warnings.warn(
                     f"""
-                Unit {unit} is not recognized as a standard unit for 
+                Unit "{units}" is not recognized as a standard unit for 
                 an axis with type {type}.
                 """,
                     UserWarning,
                 )
         elif type == AxisType.time:
-            if unit not in TimeUnit.__members__:
+            if units not in TimeUnit.__members__:
                 warnings.warn(
                     f"""
-                Unit {unit} is not recognized as a standard unit for
+                Unit "{units}" is not recognized as a standard unit for
                 an axis with type {type}.
                 """,
                     UserWarning,
@@ -115,7 +115,7 @@ class Axis(StrictBaseModel):
                 UserWarning,
             )
 
-        if unit is None:
+        if units is None:
             warnings.warn(
                 f"""
             Null unit type. Version {version} of the OME-NGFF spec states
@@ -123,4 +123,4 @@ class Axis(StrictBaseModel):
             """,
                 UserWarning,
             )
-        return unit
+        return units
