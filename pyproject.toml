@@ -8,7 +8,7 @@ readme = "README.md"
 packages = [{include = "pydantic_ome_ngff", from="src"}]
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.9"
 pydantic = "^1.10.4"
 
 
