@@ -24,9 +24,9 @@ def fetch_schemas(version: str, schema_name: str) -> Tuple[Any, Any]:
 def test_multiscale():
     base_schema, strict_schema = fetch_schemas("latest", schema_name="image")
     axes = [
-        Axis(name="z", type="space", units="meter"),
-        Axis(name="x", type="space", units="meter"),
-        Axis(name="y", type="space", units="meter"),
+        Axis(name="z", type="space", unit="meter"),
+        Axis(name="x", type="space", unit="meter"),
+        Axis(name="y", type="space", unit="meter"),
     ]
     rank = len(axes)
     datasets = [
@@ -69,8 +69,8 @@ def test_multiscale():
 
 def test_multiscale_unique_axis_names():
     axes = [
-        Axis(name="x", type="space", units="meter"),
-        Axis(name="x", type="space", units="meter"),
+        Axis(name="x", type="space", unit="meter"),
+        Axis(name="x", type="space", unit="meter"),
     ]
     datasets = [
         MultiscaleDataset(
@@ -105,7 +105,7 @@ def test_multiscale_unique_axis_names():
 def test_multiscale_semantic_axis_order(axis_types: List[Optional[str]]):
     units_map = {"space": "meter", "time": "second"}
     axes = [
-        Axis(name=str(idx), type=t, units=units_map.get(t, None))
+        Axis(name=str(idx), type=t, unit=units_map.get(t, None))
         for idx, t in enumerate(axis_types)
     ]
     rank = len(axes)
@@ -148,7 +148,7 @@ def test_multiscale_semantic_axis_order(axis_types: List[Optional[str]]):
 @pytest.mark.parametrize("num_axes", (0, 1, 6, 7))
 def test_multiscale_axis_length(num_axes: int):
     rank = num_axes
-    axes = [Axis(name=str(idx), type="space", units="meter") for idx in range(num_axes)]
+    axes = [Axis(name=str(idx), type="space", unit="meter") for idx in range(num_axes)]
     datasets = [
         MultiscaleDataset(
             path="path",

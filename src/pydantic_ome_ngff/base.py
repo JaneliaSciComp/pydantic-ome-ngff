@@ -7,7 +7,7 @@ class StrictBaseModel(BaseModel):
     A pydantic basemodel that prevents extra fields.
     """
 
-    class config:
+    class Config:
         extra = "forbid"
 
 
