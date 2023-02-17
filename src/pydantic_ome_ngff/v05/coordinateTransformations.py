@@ -3,6 +3,11 @@ from typing import List, Literal, Union
 from pydantic_ome_ngff.base import StrictBaseModel
 
 
+class IdentityTransform(StrictBaseModel):
+    # SPEC why does this exist, as opposed to translation by 0 or scale by 1?
+    type: str = "identity"
+
+
 class PathTransform(
     StrictBaseModel
 ):  # SPEC: the existence of this type is a massive sinkhole in the spec
@@ -27,4 +32,6 @@ class VectorScaleTransform(StrictBaseModel):
 
 ScaleTransform = Union[VectorScaleTransform, PathTransform]
 TranslationTransform = Union[VectorTranslationTransform, PathTransform]
-CoordinateTransform = List[Union[ScaleTransform, TranslationTransform]]
+CoordinateTransform = List[
+    Union[ScaleTransform, TranslationTransform, IdentityTransform]
+]
