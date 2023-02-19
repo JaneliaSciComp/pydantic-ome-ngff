@@ -1,4 +1,5 @@
-from pydantic_ome_ngff.base import StrictBaseModel, warning_on_one_line
+from pydantic_ome_ngff.base import StrictBaseModel
+from pydantic_ome_ngff.utils import warning_on_one_line
 from pydantic_ome_ngff.v05 import version
 import warnings
 from enum import Enum

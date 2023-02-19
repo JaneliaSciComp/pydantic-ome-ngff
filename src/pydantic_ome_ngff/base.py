@@ -1,5 +1,8 @@
-from pydantic import BaseModel
-from typing import TypeVar, Sequence, Dict
+from pydantic import BaseModel, Field
+from typing import List, Literal, Tuple, Union
+
+
+NodeType = Literal["array", "group"]
 
 
 class StrictBaseModel(BaseModel):
@@ -11,19 +14,23 @@ class StrictBaseModel(BaseModel):
         extra = "forbid"
 
 
-T = TypeVar("T")
+class Attrs(BaseModel):
+    class Config:
+        extra = "allow"
 
 
-def census(values: Sequence[T]) -> Dict[T, int]:
-    """
-    Generate a dictionary of value : frequency pairs from a
-    sequence of (hashable) values.
-    """
-    return {k: values.count(k) for k in set(values)}
+class Node(StrictBaseModel):
+    node_type: NodeType
+    name: str
+    attrs: Attrs = Attrs()
 
 
-def warning_on_one_line(message, category, filename, lineno, file=None, line=None):
-    """
-    Format a warning so that it doesn't show source code
-    """
-    return f"{filename}:{lineno} {category.__name__}{message}\n"
+class Array(Node):
+    node_type: NodeType = Field("array", const=True)
+    shape: Tuple[int, ...]
+    dtype: str
+
+
+class Group(Node):
+    node_type: NodeType = Field("group", const=True)
+    children: List[Union["Group", Array]]

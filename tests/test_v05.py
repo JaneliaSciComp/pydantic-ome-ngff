@@ -3,35 +3,33 @@ from typing import Any, Tuple, List, Optional
 import jsonschema as jsc
 import pytest
 from pydantic import ValidationError
-from pydantic_ome_ngff.v05.multiscales import Multiscale, MultiscaleDataset
+from pydantic_ome_ngff.base import Array
+from pydantic_ome_ngff.v05.multiscales import (
+    Multiscale,
+    MultiscaleDataset,
+    MultiscaleGroup,
+)
 from pydantic_ome_ngff.v05.coordinateTransformations import (
+    CoordinateTransform,
     VectorScaleTransform,
     VectorTranslationTransform,
 )
 from pydantic_ome_ngff.v05.axes import Axis
 
 
-def fetch_schemas(version: str, schema_name: str) -> Tuple[Any, Any]:
-    base_schema = requests.get(
-        f"https://ngff.openmicroscopy.org/{version}/schemas/strict_{schema_name}.schema"
-    ).json()
-    strict_schema = requests.get(
-        f"https://ngff.openmicroscopy.org/{version}/schemas/{schema_name}.schema"
-    ).json()
-    return base_schema, strict_schema
-
-
-def test_multiscale():
-    base_schema, strict_schema = fetch_schemas("latest", schema_name="image")
+@pytest.fixture
+def default_multiscale():
     axes = [
+        Axis(name="c", type="channel", unit=None),
         Axis(name="z", type="space", unit="meter"),
         Axis(name="x", type="space", unit="meter"),
         Axis(name="y", type="space", unit="meter"),
     ]
     rank = len(axes)
+    num_datasets = 3
     datasets = [
         MultiscaleDataset(
-            path="path",
+            path=f"path{idx}",
             coordinateTransformations=[
                 VectorScaleTransform(
                     scale=[
@@ -47,6 +45,7 @@ def test_multiscale():
                 ),
             ],
         )
+        for idx in range(num_datasets)
     ]
 
     multi = Multiscale(
@@ -62,12 +61,53 @@ def test_multiscale():
             ),
         ],
     )
-    sample = {"multiscales": [multi.dict()]}
+    return multi
 
-    jsc.validate(sample, strict_schema)
+
+def fetch_schemas(version: str, schema_name: str) -> Tuple[Any, Any]:
+    base_schema = requests.get(
+        f"https://ngff.openmicroscopy.org/{version}/schemas/strict_{schema_name}.schema"
+    ).json()
+    strict_schema = requests.get(
+        f"https://ngff.openmicroscopy.org/{version}/schemas/{schema_name}.schema"
+    ).json()
+    return base_schema, strict_schema
+
+
+def test_multiscale(default_multiscale):
+    base_schema, strict_schema = fetch_schemas("latest", schema_name="image")
+    jsc.validate({"multiscales": [default_multiscale.dict()]}, strict_schema)
 
 
 def test_multiscale_unique_axis_names():
+
+    axes = [
+        Axis(name="y", type="space", unit="meter"),
+        Axis(name="x", type="space", unit="meter"),
+    ]
+
+    # this should be fine
+
+    datasets = [
+        MultiscaleDataset(
+            path="path",
+            coordinateTransformations=[
+                VectorScaleTransform(scale=[1, 1, 1]),
+                VectorTranslationTransform(translation=[0, 0, 0]),
+            ],
+        )
+    ]
+
+    Multiscale(
+        name="foo",
+        axes=axes,
+        datasets=datasets,
+        coordinateTransformations=[
+            VectorScaleTransform(scale=[1, 1, 1]),
+        ],
+    )
+
+    # make axis names collide
     axes = [
         Axis(name="x", type="space", unit="meter"),
         Axis(name="x", type="space", unit="meter"),
@@ -181,4 +221,131 @@ def test_multiscale_axis_length(num_axes: int):
                     * rank
                 ),
             ],
+        )
+
+
+def test_coordinate_transforms_invalid_ranks():
+    tforms = [
+        VectorScaleTransform(scale=(1, 1)),
+        VectorTranslationTransform(translation=(1, 1, 1)),
+    ]
+    with pytest.raises(
+        ValidationError,
+        match="Elements of coordinateTransformations must have the same dimensionality.",  # noqa
+    ):
+        MultiscaleDataset(path="foo", coordinateTransformations=tforms)
+
+
+@pytest.mark.parametrize(
+    "transforms",
+    (
+        [
+            VectorTranslationTransform(translation=(1, 1, 1)),
+        ]
+        * 3,
+        [
+            VectorScaleTransform(scale=(1, 1, 1)),
+        ]
+        * 5,
+        [
+            VectorScaleTransform(scale=(1, 1, 1)),
+            VectorTranslationTransform(translation=(1, 1, 1)),
+            VectorTranslationTransform(translation=(1, 1, 1)),
+        ],
+    ),
+)
+def test_coordinate_transforms_invalid_lenght(
+    transforms: Tuple[CoordinateTransform, CoordinateTransform]
+):
+    with pytest.raises(ValidationError, match="ensure this value has at most 2 items"):
+        MultiscaleDataset(path="foo", coordinateTransformations=transforms)
+
+
+@pytest.mark.parametrize(
+    "transforms",
+    (
+        [
+            VectorTranslationTransform(translation=(1, 1, 1)),
+        ]
+        * 2,
+        [
+            VectorScaleTransform(scale=(1, 1, 1)),
+        ]
+        * 2,
+        [
+            VectorTranslationTransform(translation=(1, 1, 1)),
+            VectorScaleTransform(scale=(1, 1, 1)),
+        ],
+    ),
+)
+def test_coordinate_transforms_invalid_elements(
+    transforms: Tuple[CoordinateTransform, CoordinateTransform]
+):
+    with pytest.raises(
+        ValidationError, match="element of coordinateTransformations must be a"
+    ):
+        MultiscaleDataset(path="foo", coordinateTransformations=transforms)
+
+
+def test_multiscale_group_datasets_exist(default_multiscale: Multiscale):
+    good_children = [
+        Array(name=d.path, shape=(1, 1, 1, 1), dtype="")
+        for d in default_multiscale.datasets
+    ]
+    MultiscaleGroup(
+        name="",
+        attrs={"multiscales": [default_multiscale.dict()]},
+        children=good_children,
+    )
+
+    with pytest.raises(
+        ValidationError,
+        match="array with that name was found in the children of that group.",
+    ):
+        bad_children = [
+            Array(name=d.path + "bla", shape=(1, 1, 1, 1), dtype="")
+            for d in default_multiscale.datasets
+        ]
+        MultiscaleGroup(
+            name="",
+            attrs={"multiscales": [default_multiscale.dict()]},
+            children=bad_children,
+        )
+
+
+def test_multiscale_group_datasets_rank(default_multiscale: Multiscale):
+    good_children = [
+        Array(name=d.path, shape=(1, 1, 1, 1), dtype="")
+        for d in default_multiscale.datasets
+    ]
+    MultiscaleGroup(
+        name="",
+        attrs={"multiscales": [default_multiscale.dict()]},
+        children=good_children,
+    )
+
+    with pytest.raises(
+        ValidationError, match="All arrays must have the same dimensionality."
+    ):
+        # arrays with varying rank
+        bad_children = [
+            Array(name=d.path, shape=(1,) * (idx + 1), dtype="")
+            for idx, d in enumerate(default_multiscale.datasets)
+        ]
+        MultiscaleGroup(
+            name="",
+            attrs={"multiscales": [default_multiscale.dict()]},
+            children=bad_children,
+        )
+
+    with pytest.raises(ValidationError, match="Transform dimensionality"):
+        # arrays with rank that doesn't match the transform
+        bad_children = [
+            Array(name=d.path, shape=(1,), dtype="")
+            for d in default_multiscale.datasets
+        ]
+        MultiscaleGroup(
+            name="",
+            attrs={"multiscales": [default_multiscale.dict()]},
+            children=bad_children,
         )

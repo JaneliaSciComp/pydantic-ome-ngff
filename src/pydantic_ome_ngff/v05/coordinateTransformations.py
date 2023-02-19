@@ -30,8 +30,22 @@ class VectorScaleTransform(StrictBaseModel):
     scale: List[float]  # SPEC: redundant field name -- we already know it's scale
 
 
+def get_transform_rank(
+    transform: Union[VectorScaleTransform, VectorTranslationTransform]
+) -> int:
+    if transform.type == "scale":
+        return len(transform.scale)
+    elif transform.type == "translation":
+        return len(transform.translation)
+    else:
+        raise ValueError(
+            f"""
+        Transform must be either VectorScaleTransform or VectorTranslationTransform.
+        Got {type(transform)} instead.
+        """
+        )
+
+
 ScaleTransform = Union[VectorScaleTransform, PathTransform]
 TranslationTransform = Union[VectorTranslationTransform, PathTransform]
-CoordinateTransform = List[
-    Union[ScaleTransform, TranslationTransform, IdentityTransform]
-]
+CoordinateTransform = Union[ScaleTransform, TranslationTransform, IdentityTransform]
