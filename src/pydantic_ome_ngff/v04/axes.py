@@ -1,12 +1,9 @@
-from pydantic_ome_ngff.base import StrictBaseModel
-from pydantic_ome_ngff.utils import warning_on_one_line
-from pydantic_ome_ngff.v05 import version
+from pydantic_ome_ngff.base import StrictVersionedBase
+from pydantic_ome_ngff.v04 import version
 import warnings
 from enum import Enum
 from typing import Any, Optional
 from pydantic import validator
-
-warnings.formatwarning = warning_on_one_line
 
 
 class AxisType(str, Enum):
@@ -70,21 +67,27 @@ class TimeUnit(str, Enum):
     zettasecond = "zettasecond"
 
 
-class Axis(StrictBaseModel):
-    # SPEC: this should almost certainly be a string, but the spec doesn't specify the type: https://github.com/ome/ngff/blob/ee4d5dab677636a28f1f65c248a751e279a0d1fe/latest/index.bs#L245
+class Axis(StrictVersionedBase):
+    """
+    Axis metadata.
+    See https://ngff.openmicroscopy.org/0.4/#axes-md
+    """
+
+    _version = version
+    # SPEC: this should almost certainly be a string, but the spec doesn't specify the type: https://github.com/ome/ngff/blob/ee4d5dab677636a28f1f65c248a751e279a0d1fe/0.4/index.bs#L243
     name: Any
     type: Optional[str]
     unit: Optional[str]
 
     @validator("unit")
-    def normative_unit(cls, unit, values):
+    def check_unit(cls, unit, values):
         type = values["type"]
         if type == AxisType.space:
             if unit not in SpaceUnit.__members__:
                 warnings.warn(
                     f"""
-                Unit "{unit}" is not recognized as a standard unit for 
-                an axis with type {type}.
+                Unit "{unit}" is not recognized as a standard unit for an axis with 
+                type "{type}".
                 """,
                     UserWarning,
                 )
@@ -92,8 +95,8 @@ class Axis(StrictBaseModel):
             if unit not in TimeUnit.__members__:
                 warnings.warn(
                     f"""
-                Unit "{unit}" is not recognized as a standard unit for
-                an axis with type {type}.
+                Unit "{unit}" is not recognized as a standard unit for an axis with 
+                type "{type}".
                 """,
                     UserWarning,
                 )
@@ -102,16 +105,17 @@ class Axis(StrictBaseModel):
         elif type is None:
             warnings.warn(
                 f"""
-             Null axis type. Version {version} of the OME-NGFF spec states 
-             that the `type` field of an axis should be set to a string.
+             Null axis type. Version {cls._version} of the OME-NGFF spec states that 
+             the "type" field of an axis should be set to a string.
             """,
                 UserWarning,
             )
         else:
             warnings.warn(
                 f"""
-            Unknown axis type "{type}". Version {version} of the OME-NGFF spec states
-            that the `type` field of an axis should be one of {AxisType._member_names_}.
+            Unknown axis type "{type}". Version {cls._version} of the OME-NGFF spec 
+            states that the "type" field of an axis should be one of 
+            {AxisType._member_names_}.
             """,
                 UserWarning,
             )
@@ -119,7 +123,7 @@ class Axis(StrictBaseModel):
         if unit is None:
             warnings.warn(
                 f"""
-            Null unit type. Version {version} of the OME-NGFF spec states
+            Null unit. Version {cls._version} of the OME-NGFF spec states
             that the `unit` field of an axis should be set to a string.
             """,
                 UserWarning,

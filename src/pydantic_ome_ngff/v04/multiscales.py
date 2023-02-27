@@ -1,13 +1,15 @@
+from collections import Counter
 import warnings
-from typing import Any, Dict, List, Optional, Union, Tuple
+from typing import Any, Dict, List, Optional, Union, Tuple, cast
 
 from pydantic import Field, root_validator, validator
 
-from pydantic_ome_ngff.utils import warning_on_one_line, census
-from pydantic_ome_ngff.base import StrictBaseModel, Group, Attrs, Array
-from pydantic_ome_ngff.v05 import version
-from pydantic_ome_ngff.v05.axes import Axis, AxisType
-from pydantic_ome_ngff.v05.coordinateTransformations import (
+from pydantic_ome_ngff.utils import duplicates
+from pydantic_ome_ngff.base import StrictBase, StrictVersionedBase
+from pydantic_ome_ngff.tree import Group, Attrs, Array
+from pydantic_ome_ngff.v04 import version
+from pydantic_ome_ngff.v04.axes import Axis, AxisType
+from pydantic_ome_ngff.v04.coordinateTransformations import (
     ScaleTransform,
     TranslationTransform,
     VectorScaleTransform,
@@ -15,10 +17,8 @@ from pydantic_ome_ngff.v05.coordinateTransformations import (
     get_transform_rank,
 )
 
-warnings.formatwarning = warning_on_one_line
 
-
-class MultiscaleDataset(StrictBaseModel):
+class MultiscaleDataset(StrictBase):
     path: str
     coordinateTransformations: List[
         Union[ScaleTransform, TranslationTransform]
@@ -41,17 +41,10 @@ class MultiscaleDataset(StrictBaseModel):
         return transforms
 
     @validator("coordinateTransformations")
-    def check_transforms_values(cls, transforms):
-        if (len_tx := len(transforms)) not in (1, 2):
-            raise ValueError(
-                f"""
-            Invalid number of coordinateTransformations. 
-            Got {len_tx}, expected 1 or 2.
-            """
-            )
+    def check_transforms_types(cls, transforms):
         if (tform := transforms[0].type) != "scale":
             raise ValueError(
-                """
+                f"""
             The first element of coordinateTransformations must be a scale transform.
             Got {tform} instead.
             """
@@ -61,14 +54,22 @@ class MultiscaleDataset(StrictBaseModel):
             raise ValueError(
                 f"""
             The second element of coordinateTransformations must be a translation 
-            transform. got {tform} instead"""
+            transform. got {tform} instead.
+            """
             )
         return transforms
 
 
-class Multiscale(StrictBaseModel):
-    # SPEC: why is this optional?
-    # SPEC: untyped!
+class Multiscale(StrictVersionedBase):
+    """
+    Multiscale image metadata.
+    See https://ngff.openmicroscopy.org/0.4/#multiscale-md
+    """
+
+    # we need to put the version here as a private class attribute because the version
+    # is not required by the spec...
+    _version = version
+    # SPEC: why is this optional? why is it untyped?
     version: Optional[Any] = version
     # SPEC: why is this nullable instead of reserving the empty string
     # SPEC: untyped!
@@ -93,7 +94,7 @@ class Multiscale(StrictBaseModel):
         if name is None:
             warnings.warn(
                 f"""
-            The name field was set to None. Version {version} of the OME-NGFF spec 
+            The name field was set to None. Version {cls._version} of the OME-NGFF spec 
             states that the `name` field of a Multiscales object should not be None.
             """
             )
@@ -101,24 +102,21 @@ class Multiscale(StrictBaseModel):
 
     @validator("axes")
     def check_axes(cls, axes):
-        axis_names = [a.name for a in axes]
-        if len(set(axis_names)) < len(axes):
-            name_count = census([a.name for a in axes])
-            dupes = tuple(filter(lambda v: name_count[v] > 1, name_count.keys()))
+        name_dupes = duplicates(a.name for a in axes)
+        if len(name_dupes) > 0:
             raise ValueError(
-                f"Axis names must be unique. Axis names {dupes} are repeated."
+                f"""
+                Axis names must be unique. Axis names {tuple(name_dupes.keys())} are 
+                repeated.
+                """
             )
-        axis_types = [a.type for a in axes]
-        type_census = {
-            name: sum(map(lambda v: v == name, axis_types))
-            for name in AxisType._member_names_
-        }
-
+        axis_types = [ax.type for ax in axes]
+        type_census = Counter(axis_types)
         num_spaces = type_census["space"]
         if num_spaces < 2 or num_spaces > 3:
             raise ValueError(
                 f"""
-                Invalid number of space axes ({num_spaces}). Only 2 or 3 "space" axes 
+                Invalid number of space axes: {num_spaces}. Only 2 or 3 "space" axes 
                 are allowed.
                 """
             )
@@ -130,28 +128,25 @@ class Multiscale(StrictBaseModel):
                 """
             )
 
-        num_times = type_census["time"]
-
-        if num_times > 1:
+        if (num_times := type_census["time"]) > 1:
             raise ValueError(
                 f"""
-                Invalid number of time axes ({num_times}). Only 1 time axis is allowed.
+                Invalid number of time axes: {num_times}. Only 1 time axis is allowed.
                 """
             )
 
-        num_channels = type_census["channel"]
-
-        if num_channels > 1:
+        if (num_channels := type_census["channel"]) > 1:
             raise ValueError(
                 f"""
-                Invalid number of time axes ({num_times}). Only 1 time axis is allowed.
+                Invalid number of channel axes: {num_channels}. Only 1 channel axis is 
+                allowed.
                 """
             )
 
         custom_axes = set(axis_types) - set(AxisType._member_names_)
         if len(custom_axes) > 1:
             raise ValueError(
-                f"""Invalid number of custom axes ({custom_axes}). Only 1 custom axis is
+                f"""Invalid number of custom axes: {custom_axes}. Only 1 custom axis is
                 allowed.
                 """
             )
@@ -159,6 +154,11 @@ class Multiscale(StrictBaseModel):
 
 
 class MultiscaleAttrs(Attrs):
+    """
+    Attributes of a multiscale group.
+    See https://ngff.openmicroscopy.org/0.4/#multiscale-md
+    """
+
     multiscales: List[Multiscale]
 
 
@@ -166,7 +166,7 @@ class MultiscaleGroup(Group):
     attrs: MultiscaleAttrs
 
     @root_validator
-    def arrays_exist(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+    def check_arrays_exist(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         children: List[Union[Array, Group]] = values["children"]
         child_arrays = []
         child_groups = []
@@ -215,7 +215,10 @@ class MultiscaleGroup(Group):
                 tforms.extend(dataset.coordinateTransformations)
             for tform in tforms:
 
-                if type(tform) in (VectorScaleTransform, VectorTranslationTransform):
+                if hasattr(tform, "scale") or hasattr(tform, "translation"):
+                    tform = cast(
+                        Union[VectorScaleTransform, VectorTranslationTransform], tform
+                    )
                     if (tform_dims := get_transform_rank(tform)) not in set(ranks):
                         raise ValueError(
                             f"""

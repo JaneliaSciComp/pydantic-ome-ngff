@@ -1,20 +1,20 @@
-import requests
-from typing import Any, Tuple, List, Optional
+from typing import Tuple, List, Optional
 import jsonschema as jsc
 import pytest
 from pydantic import ValidationError
-from pydantic_ome_ngff.base import Array
-from pydantic_ome_ngff.v05.multiscales import (
+from pydantic_ome_ngff.tree import Array
+from pydantic_ome_ngff.utils import fetch_schemas
+from pydantic_ome_ngff.v04.multiscales import (
     Multiscale,
     MultiscaleDataset,
     MultiscaleGroup,
 )
-from pydantic_ome_ngff.v05.coordinateTransformations import (
+from pydantic_ome_ngff.v04.coordinateTransformations import (
     CoordinateTransform,
     VectorScaleTransform,
     VectorTranslationTransform,
 )
-from pydantic_ome_ngff.v05.axes import Axis
+from pydantic_ome_ngff.v04.axes import Axis
 
 
 @pytest.fixture
@@ -64,18 +64,8 @@ def default_multiscale():
     return multi
 
 
-def fetch_schemas(version: str, schema_name: str) -> Tuple[Any, Any]:
-    base_schema = requests.get(
-        f"https://ngff.openmicroscopy.org/{version}/schemas/strict_{schema_name}.schema"
-    ).json()
-    strict_schema = requests.get(
-        f"https://ngff.openmicroscopy.org/{version}/schemas/{schema_name}.schema"
-    ).json()
-    return base_schema, strict_schema
-
-
 def test_multiscale(default_multiscale):
-    base_schema, strict_schema = fetch_schemas("latest", schema_name="image")
+    base_schema, strict_schema = fetch_schemas("0.4", schema_name="image")
     jsc.validate({"multiscales": [default_multiscale.dict()]}, strict_schema)
 
 

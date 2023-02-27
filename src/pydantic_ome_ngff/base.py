@@ -1,36 +1,25 @@
-from pydantic import BaseModel, Field
-from typing import List, Literal, Tuple, Union
+from pydantic import BaseModel, Extra
 
 
-NodeType = Literal["array", "group"]
-
-
-class StrictBaseModel(BaseModel):
+class StrictBase(BaseModel, extra=Extra.forbid):
     """
-    A pydantic basemodel that prevents extra fields.
+    A pydantic basemodel that refuses extra fields.
     """
 
-    class Config:
-        extra = "forbid"
+    ...
 
 
-class Attrs(BaseModel):
-    class Config:
-        extra = "allow"
+class VersionedBase(BaseModel):
+    """
+    An internally versioned pydantic basemodel.
+    """
+
+    _version: str = "0.0"
 
 
-class Node(StrictBaseModel):
-    node_type: NodeType
-    name: str
-    attrs: Attrs = Attrs()
+class StrictVersionedBase(VersionedBase, StrictBase):
+    """
+    An internally versioned pydantic basemodel that refuses extra fields.
+    """
 
-
-class Array(Node):
-    node_type: NodeType = Field("array", const=True)
-    shape: Tuple[int, ...]
-    dtype: str
-
-
-class Group(Node):
-    node_type: NodeType = Field("group", const=True)
-    children: List[Union["Group", Array]]
+    ...

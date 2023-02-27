@@ -1,25 +1,27 @@
-from typing import Sequence, Dict, TypeVar, Any
+from collections import Counter
+from typing import Dict, Any, Sequence, Tuple, Hashable
 
-T = TypeVar("T")
+import requests
 
 
-def census(values: Sequence[T]) -> Dict[T, int]:
+def duplicates(values: Sequence[Hashable]) -> Dict[Hashable, int]:
     """
-    Generate a dictionary of value : frequency pairs from a
-    sequence of (hashable) values.
+    Takes a sequence of hashable elements and returns a dict where the keys are the
+    elements of the input that occurred at least once, and the values are the
+    frequencies of those elements.
     """
-    return {k: values.count(k) for k in set(values)}
+    counts = Counter(values)
+    return {k: v for k, v in counts.items() if v > 1}
 
 
-def warning_on_one_line(
-    message: str,
-    category: Any,
-    filename: str,
-    lineno: int,
-    file: Any = None,
-    line: Any = None,
-):
+def fetch_schemas(version: str, schema_name: str) -> Tuple[Any, Any]:
     """
-    Format a warning so that it doesn't show source code
+    Get the relaxed and strict schemas for a given version of the spec.
     """
-    return f"{filename}:{lineno} {category.__name__}{message}\n"
+    base_schema = requests.get(
+        f"https://ngff.openmicroscopy.org/{version}/schemas/strict_{schema_name}.schema"
+    ).json()
+    strict_schema = requests.get(
+        f"https://ngff.openmicroscopy.org/{version}/schemas/{schema_name}.schema"
+    ).json()
+    return base_schema, strict_schema

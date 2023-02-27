@@ -1,16 +1,25 @@
 from typing import List, Literal, Union
 
-from pydantic_ome_ngff.base import StrictBaseModel
+from pydantic_ome_ngff.base import StrictBase
 
 
-class IdentityTransform(StrictBaseModel):
+class IdentityTransform(StrictBase):
+    """
+    An identity transform with no parameters.
+    See https://ngff.openmicroscopy.org/0.4/#trafo-md
+    """
+
     # SPEC why does this exist, as opposed to translation by 0 or scale by 1?
     type: str = "identity"
 
 
-class PathTransform(
-    StrictBaseModel
-):  # SPEC: the existence of this type is a massive sinkhole in the spec
+class PathTransform(StrictBase):
+    """
+    A coordinateTransform with a `path` field.
+    See https://ngff.openmicroscopy.org/0.4/#trafo-md
+    """
+
+    # SPEC: the existence of this type is a massive sinkhole in the spec
     # translate and scale are both so simple that nobody should be using a path
     # argument to refer to some remote resource representing a translation
     # or a scale transform
@@ -18,14 +27,24 @@ class PathTransform(
     path: str
 
 
-class VectorTranslationTransform(StrictBaseModel):
+class VectorTranslationTransform(StrictBase):
+    """
+    A translation transform with a `translate` field that is a vector.
+    See https://ngff.openmicroscopy.org/0.4/#trafo-md
+    """
+
     type: Literal["translation"] = "translation"
     translation: List[
         float
     ]  # SPEC: redundant field name -- we already know it's translation
 
 
-class VectorScaleTransform(StrictBaseModel):
+class VectorScaleTransform(StrictBase):
+    """
+    A scale transform with a `scale` field that is a vector.
+    See https://ngff.openmicroscopy.org/0.4/#trafo-md
+    """
+
     type: Literal["scale"] = "scale"
     scale: List[float]  # SPEC: redundant field name -- we already know it's scale
 
@@ -33,9 +52,12 @@ class VectorScaleTransform(StrictBaseModel):
 def get_transform_rank(
     transform: Union[VectorScaleTransform, VectorTranslationTransform]
 ) -> int:
-    if transform.type == "scale":
+    """
+    Get the rank (dimensionality) of a vector transform (scale or translation).
+    """
+    if transform.type == "scale" and hasattr(transform, "scale"):
         return len(transform.scale)
-    elif transform.type == "translation":
+    elif transform.type == "translation" and hasattr(transform, "translation"):
         return len(transform.translation)
     else:
         raise ValueError(

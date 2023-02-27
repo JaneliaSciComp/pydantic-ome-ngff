@@ -1,8 +1,9 @@
 from typing import List, Optional
 
 from pydantic import BaseModel, PositiveInt
+from pydantic_ome_ngff.base import VersionedBase
 
-from pydantic_ome_ngff.v05 import version as v05_version
+from pydantic_ome_ngff.v04 import version
 
 
 class Acquisition(BaseModel):
@@ -22,9 +23,17 @@ class Well(BaseModel):
     columnIndex: PositiveInt
 
 
-class Plate(BaseModel):
+class Plate(VersionedBase):
+    """
+    Plate metadata
+    see https://ngff.openmicroscopy.org/0.4/#plate-md
+    """
+
+    # we need to put the version here as a private class attribute because the version
+    # is not required by the spec...
+    _version = version
+    version: Optional[str] = version
     name: Optional[str]
-    version: Optional[str] = v05_version
     acquisitions: List[Acquisition]
     columns: List[Entry]
     rows: List[Entry]
