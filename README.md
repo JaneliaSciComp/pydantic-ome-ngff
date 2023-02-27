@@ -1,19 +1,21 @@
 # pydantic-ome-ngff
 ## about
-Pydantic models for OME-NGFF metadata. Only the latest version (v0.5-dev) of OME-NGFF is currently supported. 
+Pydantic models for OME-NGFF metadata. Versions 0.4 and the latest (v0.5-dev) are currently supported. 
 
 supported metadata models: 
 
-- [`multiscales`](https://github.com/JaneliaSciComp/pydantic-ome-ngff/blob/main/src/pydantic_ome_ngff/v05/multiscales.py) ([spec](https://ngff.openmicroscopy.org/latest/#multiscale-md))
-- [`axes`](https://github.com/JaneliaSciComp/pydantic-ome-ngff/blob/main/src/pydantic_ome_ngff/v05/axes.py) ([spec](https://ngff.openmicroscopy.org/latest/#axes-md))
-- [`coordinateTransformations`](https://github.com/JaneliaSciComp/pydantic-ome-ngff/blob/main/src/pydantic_ome_ngff/v05/coordinateTransformations.py) ([spec](https://ngff.openmicroscopy.org/latest/#trafo-md))
-- [`plate`](https://github.com/JaneliaSciComp/pydantic-ome-ngff/blob/main/src/pydantic_ome_ngff/v05/plate.py) ([spec](https://ngff.openmicroscopy.org/latest/#plate-md))
-- [`well`](https://github.com/JaneliaSciComp/pydantic-ome-ngff/blob/main/src/pydantic_ome_ngff/v05/well.py) ([spec](https://ngff.openmicroscopy.org/latest/#well-md))
-- [`imageLabel`](https://github.com/JaneliaSciComp/pydantic-ome-ngff/blob/main/src/pydantic_ome_ngff/v05/imageLabel.py) ([spec](https://ngff.openmicroscopy.org/latest/#label-md))
+- [`multiscales`](https://github.com/JaneliaSciComp/pydantic-ome-ngff/blob/main/src/pydantic_ome_ngff/latest/multiscales.py) ([spec](https://ngff.openmicroscopy.org/latest/#multiscale-md))
+- [`axes`](https://github.com/JaneliaSciComp/pydantic-ome-ngff/blob/main/src/pydantic_ome_ngff/latest/axes.py) ([spec](https://ngff.openmicroscopy.org/latest/#axes-md))
+- [`coordinateTransformations`](https://github.com/JaneliaSciComp/pydantic-ome-ngff/blob/main/src/pydantic_ome_ngff/latest/coordinateTransformations.py) ([spec](https://ngff.openmicroscopy.org/latest/#trafo-md))
+- [`plate`](https://github.com/JaneliaSciComp/pydantic-ome-ngff/blob/main/src/pydantic_ome_ngff/latest/plate.py) ([spec](https://ngff.openmicroscopy.org/latest/#plate-md))
+- [`well`](https://github.com/JaneliaSciComp/pydantic-ome-ngff/blob/main/src/pydantic_ome_ngff/latest/well.py) ([spec](https://ngff.openmicroscopy.org/latest/#well-md))
+- [`imageLabel`](https://github.com/JaneliaSciComp/pydantic-ome-ngff/blob/main/src/pydantic_ome_ngff/latest/imageLabel.py) ([spec](https://ngff.openmicroscopy.org/latest/#label-md))
 
-`omero` and `bioformats2raw` are not supported. 
+`omero` and `bioformats2raw` are not currently supported, but contributions adding
+support for those models would be welcome.
 
-Note that these models will validate the contents of the various metadata fields, but cannot ensure that the metadata is structurally valid in the context of an array container -- e.g., these models cannot check that the number of axes in `multiscales.axes` matches the rank of arrays stored in the group bearing that `multiscales` metadata. This requires a representation of the group / array hierarchy as pydantic models, which is in progress.
+Support for container-level validation (i.e., checking that multiscale or coordinate 
+transformation metadata is compatible with a hierarchical array / group layout) is being added incrementally. 
 
 ## installation
 
