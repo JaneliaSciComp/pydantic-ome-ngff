@@ -76,8 +76,6 @@ def test_multiscale_unique_axis_names():
         Axis(name="x", type="space", unit="meter"),
     ]
 
-    # this should be fine
-
     datasets = [
         MultiscaleDataset(
             path="path",

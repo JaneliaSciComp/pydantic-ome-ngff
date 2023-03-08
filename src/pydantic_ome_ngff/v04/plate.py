@@ -3,7 +3,7 @@ from typing import List, Optional
 from pydantic import BaseModel, PositiveInt
 from pydantic_ome_ngff.base import VersionedBase
 
-from pydantic_ome_ngff.v04 import version
+from pydantic_ome_ngff.v04.base import version
 
 
 class Acquisition(BaseModel):

@@ -1,7 +1,7 @@
 import warnings
 from pydantic import validator
 from pydantic_ome_ngff.base import StrictVersionedBase
-from pydantic_ome_ngff.latest import version
+from pydantic_ome_ngff.latest.base import version
 from typing import Any, Optional
 from pydantic_ome_ngff.v04.axes import AxisType, SpaceUnit, TimeUnit
 

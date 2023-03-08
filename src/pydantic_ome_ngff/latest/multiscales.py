@@ -4,7 +4,7 @@ import warnings
 
 from pydantic import root_validator, validator, Field
 from pydantic_ome_ngff.base import StrictBase, StrictVersionedBase
-from pydantic_ome_ngff.latest import version
+from pydantic_ome_ngff.latest.base import version
 from pydantic_ome_ngff.latest import coordinateTransformations as ctx
 from pydantic_ome_ngff.tree import Array, Attrs, Group
 from pydantic_ome_ngff.utils import duplicates

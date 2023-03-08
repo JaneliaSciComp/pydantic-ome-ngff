@@ -1,5 +1,5 @@
 from pydantic_ome_ngff.base import StrictVersionedBase
-from pydantic_ome_ngff.v04 import version
+from pydantic_ome_ngff.v04.base import version
 import warnings
 from enum import Enum
 from typing import Any, Optional

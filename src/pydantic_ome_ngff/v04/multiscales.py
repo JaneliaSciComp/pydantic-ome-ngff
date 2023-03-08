@@ -7,7 +7,7 @@ from pydantic import Field, root_validator, validator
 from pydantic_ome_ngff.utils import duplicates
 from pydantic_ome_ngff.base import StrictBase, StrictVersionedBase
 from pydantic_ome_ngff.tree import Group, Attrs, Array
-from pydantic_ome_ngff.v04 import version
+from pydantic_ome_ngff.v04.base import version
 from pydantic_ome_ngff.v04.axes import Axis, AxisType
 from pydantic_ome_ngff.v04.coordinateTransformations import (
     ScaleTransform,

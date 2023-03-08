@@ -1,5 +1,4 @@
 from typing import List, Literal, Union
-
 from pydantic_ome_ngff.base import StrictBase
 
 
