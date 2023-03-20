@@ -1,10 +1,8 @@
 from collections import Counter
-from typing import Dict, Any, Sequence, Tuple, Hashable
-
-import requests
+from typing import Dict, Iterable, Hashable
 
 
-def duplicates(values: Sequence[Hashable]) -> Dict[Hashable, int]:
+def duplicates(values: Iterable[Hashable]) -> Dict[Hashable, int]:
     """
     Takes a sequence of hashable elements and returns a dict where the keys are the
     elements of the input that occurred at least once, and the values are the
@@ -12,16 +10,3 @@ def duplicates(values: Sequence[Hashable]) -> Dict[Hashable, int]:
     """
     counts = Counter(values)
     return {k: v for k, v in counts.items() if v > 1}
-
-
-def fetch_schemas(version: str, schema_name: str) -> Tuple[Any, Any]:
-    """
-    Get the relaxed and strict schemas for a given version of the spec.
-    """
-    base_schema = requests.get(
-        f"https://ngff.openmicroscopy.org/{version}/schemas/strict_{schema_name}.schema"
-    ).json()
-    strict_schema = requests.get(
-        f"https://ngff.openmicroscopy.org/{version}/schemas/{schema_name}.schema"
-    ).json()
-    return base_schema, strict_schema

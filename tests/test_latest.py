@@ -14,7 +14,7 @@ from pydantic_ome_ngff.latest.coordinateTransformations import (
     VectorTranslationTransform,
 )
 from pydantic_ome_ngff.latest.axes import Axis
-from pydantic_ome_ngff.utils import fetch_schemas
+from .conftest import fetch_schemas
 
 
 @pytest.fixture
@@ -212,7 +212,7 @@ def test_multiscale_axis_length(num_axes: int):
         )
 
 
-def test_coordinate_transforms_invalid_ranks():
+def test_coordinate_transforms_invalid_ndims():
     tforms = [
         VectorScaleTransform(scale=(1, 1)),
         VectorTranslationTransform(translation=(1, 1, 1)),

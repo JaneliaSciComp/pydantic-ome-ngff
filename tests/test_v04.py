@@ -3,7 +3,7 @@ import jsonschema as jsc
 import pytest
 from pydantic import ValidationError
 from pydantic_ome_ngff.tree import Array
-from pydantic_ome_ngff.utils import fetch_schemas
+from .conftest import fetch_schemas
 from pydantic_ome_ngff.v04.multiscales import (
     Multiscale,
     MultiscaleDataset,
@@ -214,7 +214,7 @@ def test_multiscale_axis_length(num_axes: int):
         )
 
 
-def test_coordinate_transforms_invalid_ranks():
+def test_coordinate_transforms_invalid_ndims():
     tforms = [
         VectorScaleTransform(scale=(1, 1)),
         VectorTranslationTransform(translation=(1, 1, 1)),

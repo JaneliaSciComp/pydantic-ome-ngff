@@ -38,7 +38,7 @@ class ImageLabel(VersionedBase):
     source: Optional[Source]
 
     @validator("version")
-    def check_version(cls, ver):
+    def check_version(cls, ver: str) -> str:
         if ver is None:
             warnings.warn(
                 f"""
@@ -50,7 +50,7 @@ class ImageLabel(VersionedBase):
         return ver
 
     @validator("colors")
-    def check_colors(cls, colors):
+    def check_colors(cls, colors: Optional[List[Color]]) -> Optional[List[Color]]:
         if colors is None:
             warnings.warn(
                 f"""

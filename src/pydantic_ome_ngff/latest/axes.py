@@ -2,7 +2,7 @@ import warnings
 from pydantic import validator
 from pydantic_ome_ngff.base import StrictVersionedBase
 from pydantic_ome_ngff.latest.base import version
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 from pydantic_ome_ngff.v04.axes import AxisType, SpaceUnit, TimeUnit
 
 
@@ -19,7 +19,7 @@ class Axis(StrictVersionedBase):
     unit: Optional[str]
 
     @validator("unit")
-    def check_unit(cls, unit, values):
+    def check_unit(cls, unit: str, values: Dict[str, AxisType]) -> str:
         type = values["type"]
         if type == AxisType.space:
             if unit not in SpaceUnit.__members__:

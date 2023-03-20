@@ -9,39 +9,43 @@ from pydantic_ome_ngff.base import StrictBase, StrictVersionedBase
 from pydantic_ome_ngff.tree import Group, Attrs, Array
 from pydantic_ome_ngff.v04.base import version
 from pydantic_ome_ngff.v04.axes import Axis, AxisType
-from pydantic_ome_ngff.v04.coordinateTransformations import (
-    ScaleTransform,
-    TranslationTransform,
-    VectorScaleTransform,
-    VectorTranslationTransform,
-    get_transform_rank,
-)
+import pydantic_ome_ngff.v04.coordinateTransformations as ctx
 
 
 class MultiscaleDataset(StrictBase):
     path: str
     coordinateTransformations: List[
-        Union[ScaleTransform, TranslationTransform]
+        Union[ctx.ScaleTransform, ctx.TranslationTransform]
     ] = Field(..., min_items=1, max_items=2)
 
     @validator("coordinateTransformations")
-    def check_transforms_rank(cls, transforms):
-        ranks = []
+    def check_transforms_dimensionality(
+        cls,
+        transforms: List[
+            Union[ctx.VectorScaleTransform, ctx.VectorTranslationTransform]
+        ],
+    ) -> List[Union[ctx.VectorScaleTransform, ctx.VectorTranslationTransform]]:
+        ndims = []
         for tx in transforms:
             # this repeated conditional logic around transforms is so awful.
-            if type(tx) in (VectorScaleTransform, VectorTranslationTransform):
-                ranks.append(get_transform_rank(tx))
-        if len(set(ranks)) > 1:
+            if type(tx) in (ctx.VectorScaleTransform, ctx.VectorTranslationTransform):
+                ndims.append(ctx.get_transform_ndim(tx))
+        if len(set(ndims)) > 1:
             raise ValueError(
                 f"""
             Elements of coordinateTransformations must have the same dimensionality. Got
-            elements with dimensionality = {ranks}.
+            elements with dimensionality = {ndims}.
             """
             )
         return transforms
 
     @validator("coordinateTransformations")
-    def check_transforms_types(cls, transforms):
+    def check_transforms_types(
+        cls,
+        transforms: List[
+            Union[ctx.VectorScaleTransform, ctx.VectorTranslationTransform]
+        ],
+    ) -> List[Union[ctx.VectorScaleTransform, ctx.VectorTranslationTransform]]:
         if (tform := transforms[0].type) != "scale":
             raise ValueError(
                 f"""
@@ -86,11 +90,11 @@ class Multiscale(StrictVersionedBase):
     # SPEC: should not live here, and if it is here,
     # it should default to an empty list instead of being nullable
     coordinateTransformations: Optional[
-        List[Union[ScaleTransform, TranslationTransform]]
+        List[Union[ctx.ScaleTransform, ctx.TranslationTransform]]
     ]
 
     @validator("name")
-    def check_name(cls, name):
+    def check_name(cls, name: str) -> str:
         if name is None:
             warnings.warn(
                 f"""
@@ -101,7 +105,7 @@ class Multiscale(StrictVersionedBase):
         return name
 
     @validator("axes")
-    def check_axes(cls, axes):
+    def check_axes(cls, axes: List[Axis]) -> List[Axis]:
         name_dupes = duplicates(a.name for a in axes)
         if len(name_dupes) > 0:
             raise ValueError(
@@ -116,7 +120,7 @@ class Multiscale(StrictVersionedBase):
         if num_spaces < 2 or num_spaces > 3:
             raise ValueError(
                 f"""
-                Invalid number of space axes: {num_spaces}. Only 2 or 3 "space" axes 
+                Invalid number of space axes: {num_spaces}. Only 2 or 3 space axes 
                 are allowed.
                 """
             )
@@ -191,18 +195,18 @@ class MultiscaleGroup(Group):
         return values
 
     @root_validator
-    def check_ranks(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+    def check_array_ndim(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         array_children: Tuple[Array, ...] = tuple(
             filter(lambda v: hasattr(v, "shape"), values["children"])
         )
         multiscales: List[Multiscale] = values["attrs"].multiscales
 
-        ranks = [len(a.shape) for a in array_children]
-        if len(set(ranks)) > 1:
+        ndims = tuple(len(a.shape) for a in array_children)
+        if len(set(ndims)) > 1:
             raise ValueError(
                 f"""
             All arrays must have the same dimensionality. Got arrays with dimensionality
-            {ranks}. 
+            {ndims}. 
             """
             )
 
@@ -217,13 +221,14 @@ class MultiscaleGroup(Group):
 
                 if hasattr(tform, "scale") or hasattr(tform, "translation"):
                     tform = cast(
-                        Union[VectorScaleTransform, VectorTranslationTransform], tform
+                        Union[ctx.VectorScaleTransform, ctx.VectorTranslationTransform],
+                        tform,
                     )
-                    if (tform_dims := get_transform_rank(tform)) not in set(ranks):
+                    if (tform_dims := ctx.get_transform_ndim(tform)) not in set(ndims):
                         raise ValueError(
                             f"""
                         Transform {tform} has dimensionality {tform_dims} which does not
-                        match the dimensionality of the arrays in this group ({ranks}). 
+                        match the dimensionality of the arrays in this group ({ndims}). 
                         Transform dimensionality must match array 
                         dimensionality.
                         """

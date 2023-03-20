@@ -62,14 +62,14 @@ def build_tree(element: Union[GroupLike, ArrayLike]) -> Union[Group, Array]:
     """
     result: Union[Group, Array]
     name = element.basename
-    attrs = dict(element.attrs)
+    attrs = Attrs(**element.attrs)
 
     if isinstance(element, ArrayLike):
         result = Array(
             shape=element.shape, name=name, dtype=str(element.dtype), attrs=attrs
         )
     elif isinstance(element, GroupLike):
-        children = [build_tree(val) for val in element.values()]
+        children = list(map(build_tree, element.values()))
         result = Group(name=name, attrs=attrs, children=children)
     else:
         raise ValueError(f"Object of type {type(element)} cannot be processed.")

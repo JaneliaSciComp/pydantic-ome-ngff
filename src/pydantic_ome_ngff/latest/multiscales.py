@@ -19,23 +19,30 @@ class MultiscaleDataset(StrictBase):
     ] = Field(..., min_items=1, max_items=2)
 
     @validator("coordinateTransformations")
-    def check_transforms_rank(cls, transforms):
-        ranks = []
+    def check_transforms_dimensionality(
+        cls,
+        transforms: List[
+            Union[ctx.VectorScaleTransform, ctx.VectorTranslationTransform]
+        ],
+    ) -> List[Union[ctx.VectorScaleTransform, ctx.VectorTranslationTransform]]:
+        ndims = []
         for tx in transforms:
             # this repeated conditional logic around transforms is so awful.
             if type(tx) in (ctx.VectorScaleTransform, ctx.VectorTranslationTransform):
-                ranks.append(ctx.get_transform_rank(tx))
-        if len(set(ranks)) > 1:
+                ndims.append(ctx.get_transform_ndim(tx))
+        if len(set(ndims)) > 1:
             raise ValueError(
                 f"""
             Elements of coordinateTransformations must have the same dimensionality. Got
-            elements with dimensionality = {ranks}.
+            elements with dimensionality = {ndims}.
             """
             )
         return transforms
 
     @validator("coordinateTransformations")
-    def check_transforms_types(cls, transforms):
+    def check_transforms_types(
+        cls, transforms: List[ctx.CoordinateTransform]
+    ) -> List[ctx.CoordinateTransform]:
         if (tform := transforms[0].type) != "scale":
             raise ValueError(
                 f"""
@@ -84,7 +91,7 @@ class Multiscale(StrictVersionedBase):
     ]
 
     @validator("name")
-    def check_name(cls, name):
+    def check_name(cls, name: Optional[str]) -> Optional[str]:
         if name is None:
             warnings.warn(
                 f"""
@@ -95,7 +102,7 @@ class Multiscale(StrictVersionedBase):
         return name
 
     @validator("axes")
-    def check_axes(cls, axes):
+    def check_axes(cls, axes: List[Axis]) -> List[Axis]:
         name_dupes = duplicates(a.name for a in axes)
         if len(name_dupes) > 0:
             raise ValueError(
@@ -104,13 +111,13 @@ class Multiscale(StrictVersionedBase):
                 repeated.
                 """
             )
-        axis_types = [ax.type for ax in axes]
+        axis_types = tuple(ax.type for ax in axes)
         type_census = Counter(axis_types)
         num_spaces = type_census["space"]
         if num_spaces < 2 or num_spaces > 3:
             raise ValueError(
                 f"""
-                Invalid number of space axes: {num_spaces}. Only 2 or 3 "space" axes 
+                Invalid number of space axes: {num_spaces}. Only 2 or 3 space axes 
                 are allowed.
                 """
             )
@@ -185,18 +192,18 @@ class MultiscaleGroup(Group):
         return values
 
     @root_validator
-    def check_ranks(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+    def check_array_ndim(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         array_children: Tuple[Array, ...] = tuple(
             filter(lambda v: hasattr(v, "shape"), values["children"])
         )
         multiscales: List[Multiscale] = values["attrs"].multiscales
 
-        ranks = [len(a.shape) for a in array_children]
-        if len(set(ranks)) > 1:
+        ndims = [len(a.shape) for a in array_children]
+        if len(set(ndims)) > 1:
             raise ValueError(
                 f"""
             All arrays must have the same dimensionality. Got arrays with dimensionality
-            {ranks}. 
+            {ndims}. 
             """
             )
 
@@ -213,11 +220,11 @@ class MultiscaleGroup(Group):
                         Union[ctx.VectorScaleTransform, ctx.VectorTranslationTransform],
                         tform,
                     )
-                    if (tform_dims := ctx.get_transform_rank(tform)) not in set(ranks):
+                    if (tform_dims := ctx.get_transform_ndim(tform)) not in set(ndims):
                         raise ValueError(
                             f"""
                         Transform {tform} has dimensionality {tform_dims} which does not
-                        match the dimensionality of the arrays in this group ({ranks}). 
+                        match the dimensionality of the arrays in this group ({ndims}). 
                         Transform dimensionality must match array 
                         dimensionality.
                         """

@@ -30,11 +30,11 @@ class VectorScaleTransform(ctx.VectorScaleTransform):
     """
 
 
-def get_transform_rank(
+def get_transform_ndim(
     transform: Union[VectorScaleTransform, VectorTranslationTransform]
 ) -> int:
     """
-    Get the rank (dimensionality) of a vector transform (scale or translation).
+    Get the dimensionality of a vector transform (scale or translation).
     """
     if transform.type == "scale" and hasattr(transform, "scale"):
         return len(transform.scale)
