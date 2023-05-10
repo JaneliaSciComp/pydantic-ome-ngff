@@ -1,4 +1,4 @@
-from typing import Optional
+from __future__ import annotations
 
 
 from pydantic_ome_ngff.latest.base import version
@@ -14,4 +14,4 @@ class Plate(PlateV04):
     # we need to put the version here as a private class attribute because the version
     # is not required by the spec...
     _version = version
-    version: Optional[str] = version
+    version: str | None = version

@@ -1,4 +1,5 @@
-from typing import List, Optional
+from __future__ import annotations
+from typing import List
 
 from pydantic import BaseModel, PositiveInt
 from pydantic_ome_ngff.base import VersionedBase
@@ -8,7 +9,7 @@ from pydantic_ome_ngff.v04.base import version
 
 class Acquisition(BaseModel):
     id: PositiveInt
-    name: Optional[str]
+    name: str | None
     maximumfieldcount: PositiveInt
 
 
@@ -32,8 +33,8 @@ class Plate(VersionedBase):
     # we need to put the version here as a private class attribute because the version
     # is not required by the spec...
     _version = version
-    version: Optional[str] = version
-    name: Optional[str]
+    version: str | None = version
+    name: str | None
     acquisitions: List[Acquisition]
     columns: List[Entry]
     rows: List[Entry]

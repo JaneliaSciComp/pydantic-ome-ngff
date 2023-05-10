@@ -1,5 +1,5 @@
+from __future__ import annotations
 from typing import (
-    Union,
     Protocol,
     Tuple,
     Dict,
@@ -33,7 +33,7 @@ class Array(Node):
 
 class Group(Node):
     node_type: NodeType = Field("group", const=True)
-    children: List[Union["Group", Array]]
+    children: List[Group | Array]
 
 
 class NodeLike(Protocol):
@@ -49,18 +49,18 @@ class ArrayLike(NodeLike, Protocol):
 
 @runtime_checkable
 class GroupLike(NodeLike, Protocol):
-    def values(self) -> Iterable[Union["GroupLike", ArrayLike]]:
+    def values(self) -> Iterable[GroupLike | ArrayLike]:
         """
         Iterable of the children of this group
         """
         ...
 
 
-def build_tree(element: Union[GroupLike, ArrayLike]) -> Union[Group, Array]:
+def build_tree(element: GroupLike | ArrayLike) -> Group | Array:
     """
     Recursively parse an array-like or group-like into an Array or Group.
     """
-    result: Union[Group, Array]
+    result: Group | Array
     name = element.basename
     attrs = Attrs(**element.attrs)
 
@@ -72,5 +72,6 @@ def build_tree(element: Union[GroupLike, ArrayLike]) -> Union[Group, Array]:
         children = list(map(build_tree, element.values()))
         result = Group(name=name, attrs=attrs, children=children)
     else:
-        raise ValueError(f"Object of type {type(element)} cannot be processed.")
+        msg = f"Object of type {type(element)} cannot be processed."
+        raise ValueError(msg)
     return result

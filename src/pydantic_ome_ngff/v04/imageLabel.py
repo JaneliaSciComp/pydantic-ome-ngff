@@ -1,5 +1,6 @@
+from __future__ import annotations
 import warnings
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 from pydantic import BaseModel, Field, validator
 from pydantic_ome_ngff.base import VersionedBase
@@ -10,11 +11,11 @@ from pydantic_ome_ngff.v04.base import version
 
 class Color(BaseModel):
     label_value: int = Field(..., alias="label-value")
-    rgba: Optional[Tuple[int, int, int, int]]
+    rgba: Tuple[int, int, int, int] | None
 
 
 class Source(BaseModel):
-    image: Optional[str] = "../../"
+    image: str | None = "../../"
 
 
 class Properties(BaseModel):
@@ -32,41 +33,38 @@ class ImageLabel(VersionedBase):
     _version = version
 
     # SPEC: version is either unset or a string?
-    version: Optional[str] = version
-    colors: Optional[List[Color]]
-    properties: Optional[Properties]
-    source: Optional[Source]
+    version: str | None = version
+    colors: List[Color] | None
+    properties: Properties | None
+    source: Source | None
 
     @validator("version")
     def check_version(cls, ver: str) -> str:
         if ver is None:
-            warnings.warn(
-                f"""
+            msg = f"""
             The field "version" is "None". Version {cls._version} of
             the OME-NGFF spec states that "version" must either be unset or the string
             "{cls._version}"
             """
-            )
+            warnings.warn(msg)
         return ver
 
     @validator("colors")
-    def check_colors(cls, colors: Optional[List[Color]]) -> Optional[List[Color]]:
+    def check_colors(cls, colors: List[Color] | None) -> List[Color] | None:
         if colors is None:
-            warnings.warn(
-                f"""
+            msg = f"""
             The field "colors" is "None". Version {cls._version} of
             the OME-NGFF spec states that "colors" should be a list of label 
             descriptors.
             """
-            )
+            warnings.warn(msg)
         else:
             dupes = duplicates(x.label_value for x in colors)
             if len(dupes) > 1:
-                raise ValueError(
-                    f"""
+                msg = f"""
                     Duplicated label-value: {tuple(dupes.keys())}.
                     label-values must be unique across elements of `colors`
                     """
-                )
+                raise ValueError(msg)
 
         return colors

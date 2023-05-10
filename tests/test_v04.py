@@ -1,4 +1,5 @@
-from typing import Tuple, List, Optional
+from __future__ import annotations
+from typing import Tuple, List
 import jsonschema as jsc
 import pytest
 from pydantic import ValidationError
@@ -66,6 +67,7 @@ def default_multiscale():
 
 def test_multiscale(default_multiscale):
     base_schema, strict_schema = fetch_schemas("0.4", schema_name="image")
+    # breakpoint()
     jsc.validate({"multiscales": [default_multiscale.dict()]}, strict_schema)
 
 
@@ -132,7 +134,7 @@ def test_multiscale_unique_axis_names():
         ("time", "time"),
     ),
 )
-def test_multiscale_semantic_axis_order(axis_types: List[Optional[str]]):
+def test_multiscale_semantic_axis_order(axis_types: List[str | None]):
     units_map = {"space": "meter", "time": "second"}
     axes = [
         Axis(name=str(idx), type=t, unit=units_map.get(t, None))

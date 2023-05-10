@@ -1,4 +1,5 @@
-from typing import List, Literal, Union
+from __future__ import annotations
+from typing import List, Literal
 from pydantic_ome_ngff.base import StrictBase
 
 
@@ -22,7 +23,7 @@ class PathTransform(StrictBase):
     # translate and scale are both so simple that nobody should be using a path
     # argument to refer to some remote resource representing a translation
     # or a scale transform
-    type: Union[Literal["scale"], Literal["translation"]]
+    type: Literal["scale"] | Literal["translation"]
     path: str
 
 
@@ -49,7 +50,7 @@ class VectorScaleTransform(StrictBase):
 
 
 def get_transform_ndim(
-    transform: Union[VectorScaleTransform, VectorTranslationTransform]
+    transform: VectorScaleTransform | VectorTranslationTransform,
 ) -> int:
     """
     Get the dimensionality of a vector transform (scale or translation).
@@ -59,14 +60,13 @@ def get_transform_ndim(
     elif transform.type == "translation" and hasattr(transform, "translation"):
         return len(transform.translation)
     else:
-        raise ValueError(
-            f"""
+        msg = f"""
         Transform must be either VectorScaleTransform or VectorTranslationTransform.
         Got {type(transform)} instead.
         """
-        )
+        raise ValueError(msg)
 
 
-ScaleTransform = Union[VectorScaleTransform, PathTransform]
-TranslationTransform = Union[VectorTranslationTransform, PathTransform]
-CoordinateTransform = Union[ScaleTransform, TranslationTransform, IdentityTransform]
+ScaleTransform = VectorScaleTransform | PathTransform
+TranslationTransform = VectorTranslationTransform | PathTransform
+CoordinateTransform = ScaleTransform | TranslationTransform | IdentityTransform
