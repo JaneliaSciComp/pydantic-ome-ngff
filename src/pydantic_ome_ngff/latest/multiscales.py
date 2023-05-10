@@ -2,7 +2,7 @@ from collections import Counter
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 import warnings
 
-from pydantic import root_validator, validator, Field
+from pydantic import conlist, root_validator, validator, Field
 from pydantic_ome_ngff.base import StrictBase, StrictVersionedBase
 from pydantic_ome_ngff.latest.base import version
 from pydantic_ome_ngff.latest import coordinateTransformations as ctx
@@ -14,9 +14,9 @@ from pydantic_ome_ngff.latest.axes import Axis
 
 class MultiscaleDataset(StrictBase):
     path: str
-    coordinateTransformations: List[
-        Union[ctx.ScaleTransform, ctx.TranslationTransform]
-    ] = Field(..., min_items=1, max_items=2)
+    coordinateTransformations: conlist(
+        Union[ctx.ScaleTransform, ctx.TranslationTransform], min_items=1, max_items=2
+    )
 
     @validator("coordinateTransformations")
     def check_transforms_dimensionality(
@@ -50,14 +50,14 @@ class MultiscaleDataset(StrictBase):
             Got {tform} instead.
             """
             )
-
-        if (tform := transforms[1].type) != "translation":
-            raise ValueError(
-                f"""
-            The second element of coordinateTransformations must be a translation 
-            transform. got {tform} instead.
-            """
-            )
+        if len(transforms) == 2:
+            if (tform := transforms[1].type) != "translation":
+                raise ValueError(
+                    f"""
+                The second element of coordinateTransformations must be a translation 
+                transform. got {tform} instead.
+                """
+                )
         return transforms
 
 
