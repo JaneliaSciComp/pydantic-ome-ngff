@@ -3,7 +3,7 @@ from pydantic_ome_ngff.base import StrictVersionedBase
 from pydantic_ome_ngff.v04.base import version
 import warnings
 from enum import Enum
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from pydantic import validator
 
 
@@ -77,8 +77,8 @@ class Axis(StrictVersionedBase):
     _version = version
     # SPEC: this should almost certainly be a string, but the spec doesn't specify the type: https://github.com/ome/ngff/blob/ee4d5dab677636a28f1f65c248a751e279a0d1fe/0.4/index.bs#L243
     name: Any
-    type: str | None
-    unit: str | None
+    type: Optional[str]
+    unit: Optional[str]
 
     @validator("unit")
     def check_unit(cls, unit: str, values: Dict[str, AxisType]) -> str:

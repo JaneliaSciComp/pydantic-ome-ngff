@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Union
 import pydantic_ome_ngff.v04.coordinateTransformations as ctx
 
 
@@ -31,7 +32,7 @@ class VectorScaleTransform(ctx.VectorScaleTransform):
 
 
 def get_transform_ndim(
-    transform: VectorScaleTransform | VectorTranslationTransform,
+    transform: Union[VectorScaleTransform, VectorTranslationTransform],
 ) -> int:
     """
     Get the dimensionality of a vector transform (scale or translation).
@@ -49,6 +50,6 @@ def get_transform_ndim(
         raise ValueError(msg)
 
 
-ScaleTransform = VectorScaleTransform | PathTransform
-TranslationTransform = VectorTranslationTransform | PathTransform
-CoordinateTransform = ScaleTransform | TranslationTransform | IdentityTransform
+ScaleTransform = Union[VectorScaleTransform, PathTransform]
+TranslationTransform = Union[VectorTranslationTransform, PathTransform]
+CoordinateTransform = Union[ScaleTransform, TranslationTransform, IdentityTransform]

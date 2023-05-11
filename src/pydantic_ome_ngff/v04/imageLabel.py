@@ -1,6 +1,6 @@
 from __future__ import annotations
 import warnings
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from pydantic import BaseModel, Field, validator
 from pydantic_ome_ngff.base import VersionedBase
@@ -11,11 +11,11 @@ from pydantic_ome_ngff.v04.base import version
 
 class Color(BaseModel):
     label_value: int = Field(..., alias="label-value")
-    rgba: Tuple[int, int, int, int] | None
+    rgba: Optional[Tuple[int, int, int, int]]
 
 
 class Source(BaseModel):
-    image: str | None = "../../"
+    image: Optional[str] = "../../"
 
 
 class Properties(BaseModel):
@@ -33,10 +33,10 @@ class ImageLabel(VersionedBase):
     _version = version
 
     # SPEC: version is either unset or a string?
-    version: str | None = version
-    colors: List[Color] | None
-    properties: Properties | None
-    source: Source | None
+    version: Optional[str] = version
+    colors: Optional[List[Color]]
+    properties: Optional[Properties]
+    source: Optional[Source]
 
     @validator("version")
     def check_version(cls, ver: str) -> str:
@@ -50,7 +50,7 @@ class ImageLabel(VersionedBase):
         return ver
 
     @validator("colors")
-    def check_colors(cls, colors: List[Color] | None) -> List[Color] | None:
+    def check_colors(cls, colors: Optional[List[Color]]) -> Optional[List[Color]]:
         if colors is None:
             msg = f"""
             The field "colors" is "None". Version {cls._version} of

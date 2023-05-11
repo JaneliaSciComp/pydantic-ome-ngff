@@ -7,6 +7,7 @@ from typing import (
     Iterable,
     Literal,
     List,
+    Union,
     runtime_checkable,
 )
 from pydantic import BaseModel, Field
@@ -33,7 +34,7 @@ class Array(Node):
 
 class Group(Node):
     node_type: NodeType = Field("group", const=True)
-    children: List[Group | Array]
+    children: List[Union[Group, Array]]
 
 
 class NodeLike(Protocol):
@@ -49,18 +50,18 @@ class ArrayLike(NodeLike, Protocol):
 
 @runtime_checkable
 class GroupLike(NodeLike, Protocol):
-    def values(self) -> Iterable[GroupLike | ArrayLike]:
+    def values(self) -> Iterable[Union[GroupLike, ArrayLike]]:
         """
         Iterable of the children of this group
         """
         ...
 
 
-def build_tree(element: GroupLike | ArrayLike) -> Group | Array:
+def build_tree(element: Union[GroupLike, ArrayLike]) -> Union[Group, Array]:
     """
     Recursively parse an array-like or group-like into an Array or Group.
     """
-    result: Group | Array
+    result: Union[Group, Array]
     name = element.basename
     attrs = Attrs(**element.attrs)
 

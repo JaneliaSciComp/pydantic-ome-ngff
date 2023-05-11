@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Optional
 from pydantic_ome_ngff.v04.imageLabel import ImageLabel as ImageLabelV04
 from pydantic_ome_ngff.latest.base import version
 
@@ -12,4 +13,4 @@ class ImageLabel(ImageLabelV04):
     # we need to put the version here as a private class attribute because the version
     # is not required by the spec...
     _version = version
-    version: str | None = version
+    version: Optional[str] = version

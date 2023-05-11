@@ -1,7 +1,7 @@
 from __future__ import annotations
 from collections import Counter
 import warnings
-from typing import Any, Dict, List, Tuple, cast
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from pydantic import conlist, root_validator, validator
 
@@ -16,14 +16,16 @@ import pydantic_ome_ngff.v04.coordinateTransformations as ctx
 class MultiscaleDataset(StrictBase):
     path: str
     coordinateTransformations: conlist(
-        ctx.ScaleTransform | ctx.TranslationTransform, min_items=1, max_items=2
+        Union[ctx.ScaleTransform, ctx.TranslationTransform], min_items=1, max_items=2
     )
 
     @validator("coordinateTransformations")
     def check_transforms_dimensionality(
         cls,
-        transforms: List[ctx.VectorScaleTransform | ctx.VectorTranslationTransform],
-    ) -> List[ctx.VectorScaleTransform | ctx.VectorTranslationTransform]:
+        transforms: List[
+            Union[ctx.VectorScaleTransform, ctx.VectorTranslationTransform]
+        ],
+    ) -> List[Union[ctx.VectorScaleTransform, ctx.VectorTranslationTransform]]:
         ndims = []
         for tx in transforms:
             # this repeated conditional logic around transforms is so awful.
@@ -40,8 +42,10 @@ class MultiscaleDataset(StrictBase):
     @validator("coordinateTransformations")
     def check_transforms_types(
         cls,
-        transforms: List[ctx.VectorScaleTransform | ctx.VectorTranslationTransform],
-    ) -> List[ctx.VectorScaleTransform | ctx.VectorTranslationTransform]:
+        transforms: List[
+            Union[ctx.VectorScaleTransform, ctx.VectorTranslationTransform]
+        ],
+    ) -> List[Union[ctx.VectorScaleTransform, ctx.VectorTranslationTransform]]:
         if (tform := transforms[0].type) != "scale":
             msg = f"""
             The first element of coordinateTransformations must be a scale transform.
@@ -69,24 +73,24 @@ class Multiscale(StrictVersionedBase):
     # is not required by the spec...
     _version = version
     # SPEC: why is this optional? why is it untyped?
-    version: Any | None = version
+    version: Optional[Any] = version
     # SPEC: why is this nullable instead of reserving the empty string
     # SPEC: untyped!
-    name: Any | None
+    name: Optional[Any]
     # SPEC: not clear what this field is for, given the existence of .metadata
     # SPEC: untyped!
-    type: Any | None
+    type: Optional[Any]
     # SPEC: should default to empty dict instead of None
-    metadata: Dict[str, Any] | None = None
+    metadata: Optional[Dict[str, Any]] = None
     datasets: List[MultiscaleDataset]
     # SPEC: should not exist at top level and instead
     # live in dataset metadata or in .datasets
     axes: conlist(Axis, min_items=2, max_items=5)
     # SPEC: should not live here, and if it is here,
     # it should default to an empty list instead of being nullable
-    coordinateTransformations: List[
-        ctx.ScaleTransform | ctx.TranslationTransform
-    ] | None
+    coordinateTransformations: Optional[
+        List[Union[ctx.ScaleTransform, ctx.TranslationTransform]]
+    ]
 
     @validator("name")
     def check_name(cls, name: str) -> str:
@@ -159,7 +163,7 @@ class MultiscaleGroup(Group):
 
     @root_validator
     def check_arrays_exist(cls, values: Dict[str, Any]) -> Dict[str, Any]:
-        children: List[Array | Group] = values["children"]
+        children: List[Union[Array, Group]] = values["children"]
         child_arrays = []
         child_groups = []
 
@@ -207,7 +211,7 @@ class MultiscaleGroup(Group):
 
                 if hasattr(tform, "scale") or hasattr(tform, "translation"):
                     tform = cast(
-                        ctx.VectorScaleTransform | ctx.VectorTranslationTransform,
+                        Union[ctx.VectorScaleTransform, ctx.VectorTranslationTransform],
                         tform,
                     )
                     if (tform_dims := ctx.get_transform_ndim(tform)) not in set(ndims):
