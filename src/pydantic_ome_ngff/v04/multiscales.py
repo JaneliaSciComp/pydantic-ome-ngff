@@ -2,7 +2,7 @@ from collections import Counter
 import warnings
 from typing import Any, Dict, List, Optional, Union, cast
 
-from pydantic import BaseModel, Field, conlist, root_validator, validator
+from pydantic import BaseModel, conlist, root_validator, validator
 from pydantic_zarr import GroupSpec, ArraySpec
 from pydantic_ome_ngff.utils import duplicates
 from pydantic_ome_ngff.base import StrictBase, StrictVersionedBase
@@ -85,7 +85,7 @@ class Multiscale(StrictVersionedBase):
     datasets: List[MultiscaleDataset]
     # SPEC: should not exist at top level and instead
     # live in dataset metadata or in .datasets
-    axes: List[Axis] = Field(..., min_items=2, max_items=5)
+    axes: conlist(Axis, min_items=2, max_items=5)
     # SPEC: should not live here, and if it is here,
     # it should default to an empty list instead of being nullable
     coordinateTransformations: Optional[
