@@ -3,7 +3,7 @@ from collections import Counter
 from typing import Any, Dict, List, Optional, Union, cast
 import warnings
 
-from pydantic import BaseModel, conlist, root_validator, validator, Field
+from pydantic import BaseModel, conlist, root_validator, validator
 from pydantic_ome_ngff.base import StrictBase, StrictVersionedBase
 from pydantic_ome_ngff.latest.base import version
 from pydantic_ome_ngff.latest import coordinateTransformations as ctx
@@ -66,10 +66,10 @@ class Multiscale(VersionedBase):
     """
 
     # we need to put the version here as a private class attribute because the version
-    # is not required by the spec...
+    # is not properly typed by the spec...
     _version = version
-
-    version: str = version
+    # SPEC: why is this untyped?
+    version: Any = version
     # SPEC: why is this nullable instead of reserving the empty string
     # SPEC: untyped!
     name: Optional[Any]

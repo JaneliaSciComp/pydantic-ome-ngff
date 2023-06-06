@@ -4,7 +4,7 @@ import textwrap
 import warnings
 from typing import Any, Dict, List, Optional, Union, cast
 
-from pydantic import BaseModel, Field, conlist, root_validator, validator
+from pydantic import BaseModel, conlist, root_validator, validator
 from pydantic_zarr import GroupSpec, ArraySpec
 from pydantic_ome_ngff.utils import duplicates
 from pydantic_ome_ngff.base import StrictBase, StrictVersionedBase
