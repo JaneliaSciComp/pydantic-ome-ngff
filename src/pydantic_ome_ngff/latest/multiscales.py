@@ -1,15 +1,15 @@
 from collections import Counter
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, Dict, List, Optional, Union, cast
 import warnings
 
-from pydantic import conlist, root_validator, validator, Field
+from pydantic import BaseModel, conlist, root_validator, validator, Field
 from pydantic_ome_ngff.base import StrictBase, StrictVersionedBase
 from pydantic_ome_ngff.latest.base import version
 from pydantic_ome_ngff.latest import coordinateTransformations as ctx
-from pydantic_ome_ngff.tree import Array, Attrs, Group
 from pydantic_ome_ngff.utils import duplicates
 from pydantic_ome_ngff.v04.axes import AxisType
 from pydantic_ome_ngff.latest.axes import Axis
+from pydantic_zarr import GroupSpec, ArraySpec
 
 
 class MultiscaleDataset(StrictBase):
@@ -154,7 +154,7 @@ class Multiscale(StrictVersionedBase):
         return axes
 
 
-class MultiscaleAttrs(Attrs):
+class MultiscaleAttrs(BaseModel):
     """
     Attributes of a multiscale group.
     See https://ngff.openmicroscopy.org/latest/#multiscale-md
@@ -163,42 +163,36 @@ class MultiscaleAttrs(Attrs):
     multiscales: List[Multiscale]
 
 
-class MultiscaleGroup(Group):
-    attrs: MultiscaleAttrs
-
+class MultiscaleGroup(GroupSpec[MultiscaleAttrs, Any]):
     @root_validator
     def check_arrays_exist(cls, values: Dict[str, Any]) -> Dict[str, Any]:
-        children: List[Union[Array, Group]] = values["children"]
-        child_arrays = []
-        child_groups = []
+        attrs = values["attrs"]
+        array_items: dict[str, ArraySpec] = {
+            k: v for k, v in values["items"].items() if hasattr(v, "shape")
+        }
+        multiscales: List[Multiscale] = attrs.multiscales
 
-        for child in children:
-            if isinstance(child, Group):
-                child_groups.append(child)
-            else:
-                child_arrays.append(child)
-        child_array_names = [a.name for a in child_arrays]
-        multiscales: List[Multiscale] = values["attrs"].multiscales
         for multiscale in multiscales:
             for dataset in multiscale.datasets:
-                if (dpath := dataset.path) not in child_array_names:
+                if (dpath := dataset.path) not in array_items:
                     raise ValueError(
                         f"""
                     Dataset {dpath} was specified in multiscale metadata, but no 
-                    array with that name was found in the children of that group. All 
-                    arrays in multiscale metadata must be children of the group.
+                    array with that name was found in the items of that group. All 
+                    arrays in multiscale metadata must be items of the group.
                     """
                     )
         return values
 
     @root_validator
     def check_array_ndim(cls, values: Dict[str, Any]) -> Dict[str, Any]:
-        array_children: Tuple[Array, ...] = tuple(
-            filter(lambda v: hasattr(v, "shape"), values["children"])
-        )
-        multiscales: List[Multiscale] = values["attrs"].multiscales
+        attrs = values["attrs"]
+        array_items: dict[str, ArraySpec] = {
+            k: v for k, v in values["items"].items() if hasattr(v, "shape")
+        }
+        multiscales: List[Multiscale] = attrs.multiscales
 
-        ndims = [len(a.shape) for a in array_children]
+        ndims = tuple(len(a.shape) for a in array_items.values())
         if len(set(ndims)) > 1:
             raise ValueError(
                 f"""
@@ -209,12 +203,13 @@ class MultiscaleGroup(Group):
 
         # check that each transform has compatible rank
         for multiscale in multiscales:
-            tforms: List[ctx.CoordinateTransform] = []
+            tforms = []
             if multiscale.coordinateTransformations is not None:
                 tforms.extend(multiscale.coordinateTransformations)
             for dataset in multiscale.datasets:
                 tforms.extend(dataset.coordinateTransformations)
             for tform in tforms:
+
                 if hasattr(tform, "scale") or hasattr(tform, "translation"):
                     tform = cast(
                         Union[ctx.VectorScaleTransform, ctx.VectorTranslationTransform],

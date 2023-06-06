@@ -2,9 +2,10 @@ from typing import Tuple, List, Optional
 import jsonschema as jsc
 import pytest
 from pydantic import ValidationError
-from pydantic_ome_ngff.tree import Array
+from pydantic_zarr import ArraySpec
 from pydantic_ome_ngff.latest.multiscales import (
     Multiscale,
+    MultiscaleAttrs,
     MultiscaleDataset,
     MultiscaleGroup,
 )
@@ -276,64 +277,52 @@ def test_coordinate_transforms_invalid_elements(
 
 
 def test_multiscale_group_datasets_exist(default_multiscale: Multiscale):
-    good_children = [
-        Array(name=d.path, shape=(1, 1, 1, 1), dtype="")
+    group_attrs = MultiscaleAttrs(multiscales=[default_multiscale])
+    good_items = {
+        d.path: ArraySpec(shape=(1, 1, 1, 1), dtype="", chunks=(1, 1, 1, 1), attrs={})
         for d in default_multiscale.datasets
-    ]
-    MultiscaleGroup(
-        name="",
-        attrs={"multiscales": [default_multiscale.dict()]},
-        children=good_children,
-    )
+    }
+    MultiscaleGroup(attrs=group_attrs, items=good_items)
 
     with pytest.raises(
         ValidationError,
-        match="array with that name was found in the children of that group.",
+        match="array with that name was found in the items of that group.",
     ):
-        bad_children = [
-            Array(name=d.path + "bla", shape=(1, 1, 1, 1), dtype="")
+        bad_items = {
+            d.path
+            + "x": ArraySpec(
+                shape=(1, 1, 1, 1), dtype="", chunks=(1, 1, 1, 1), attrs={}
+            )
             for d in default_multiscale.datasets
-        ]
-        MultiscaleGroup(
-            name="",
-            attrs={"multiscales": [default_multiscale.dict()]},
-            children=bad_children,
-        )
+        }
+        MultiscaleGroup(attrs=group_attrs, items=bad_items)
 
 
 def test_multiscale_group_datasets_rank(default_multiscale: Multiscale):
-    good_children = [
-        Array(name=d.path, shape=(1, 1, 1, 1), dtype="")
+    group_attrs = MultiscaleAttrs(multiscales=[default_multiscale])
+    good_items = {
+        d.path: ArraySpec(shape=(1, 1, 1, 1), dtype="", chunks=(1, 1, 1, 1), attrs={})
         for d in default_multiscale.datasets
-    ]
-    MultiscaleGroup(
-        name="",
-        attrs={"multiscales": [default_multiscale.dict()]},
-        children=good_children,
-    )
+    }
+
+    MultiscaleGroup(attrs=group_attrs, items=good_items)
 
     with pytest.raises(
         ValidationError, match="All arrays must have the same dimensionality."
     ):
         # arrays with varying rank
-        bad_children = [
-            Array(name=d.path, shape=(1,) * (idx + 1), dtype="")
+        bad_items = {
+            d.path: ArraySpec(
+                shape=(1,) * (idx + 1), dtype="", chunks=(1,) * (idx + 1), attrs={}
+            )
             for idx, d in enumerate(default_multiscale.datasets)
-        ]
-        MultiscaleGroup(
-            name="",
-            attrs={"multiscales": [default_multiscale.dict()]},
-            children=bad_children,
-        )
+        }
+        MultiscaleGroup(attrs=group_attrs, items=bad_items)
 
     with pytest.raises(ValidationError, match="Transform dimensionality"):
         # arrays with rank that doesn't match the transform
-        bad_children = [
-            Array(name=d.path, shape=(1,), dtype="")
+        bad_items = {
+            d.path: ArraySpec(shape=(1,), dtype="", chunks=(1,), attrs={})
             for d in default_multiscale.datasets
-        ]
-        MultiscaleGroup(
-            name="",
-            attrs={"multiscales": [default_multiscale.dict()]},
-            children=bad_children,
-        )
+        }
+        MultiscaleGroup(attrs=group_attrs, items=bad_items)
