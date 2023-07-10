@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Optional, Tuple, Any, Union
+from typing import Dict, List, Optional, Tuple, Any, Union
 import requests
 
 
@@ -19,7 +19,7 @@ def fetch_schemas(version: str, schema_name: str) -> Tuple[Any, Any]:
 
 FIXTURE_DIR = Path(__file__).resolve().parent / "fixtures"
 
-Jso = Optional[Union[list["Jso"], dict[str, "Jso"], int, float, bool, str]]
+Jso = Optional[Union[List["Jso"], Dict[str, "Jso"], int, float, bool, str]]
 
 
 class JsonLoader:

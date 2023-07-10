@@ -1,13 +1,13 @@
 from typing import List, Optional
 
-from pydantic import BaseModel, PositiveInt
+from pydantic import BaseModel, NonNegativeInt, PositiveInt
 from pydantic_ome_ngff.base import VersionedBase
 
 from pydantic_ome_ngff.v04.base import version
 
 
 class Acquisition(BaseModel):
-    id: PositiveInt
+    id: NonNegativeInt
     name: Optional[str]
     maximumfieldcount: PositiveInt
 
@@ -19,8 +19,8 @@ class Entry(BaseModel):
 class Well(BaseModel):
     # must be {rowName}/{columnName}
     path: str
-    rowIndex: PositiveInt
-    columnIndex: PositiveInt
+    rowIndex: NonNegativeInt
+    columnIndex: NonNegativeInt
 
 
 class Plate(VersionedBase):
