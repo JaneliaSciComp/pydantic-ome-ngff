@@ -35,7 +35,7 @@ class ImageLabel(VersionedBase):
     # SPEC: version is either unset or a string?
     version: Optional[str] = version
     colors: Optional[List[Color]]
-    properties: Optional[Properties]
+    properties: Optional[List[Properties]]
     source: Optional[Source]
 
     @validator("version")
@@ -54,7 +54,7 @@ class ImageLabel(VersionedBase):
         if colors is None:
             msg = f"""
             The field "colors" is "None". Version {cls._version} of
-            the OME-NGFF spec states that "colors" should be a list of label 
+            the OME-NGFF spec states that "colors" should be a list of label
             descriptors.
             """
             warnings.warn(msg)
