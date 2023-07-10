@@ -10,7 +10,7 @@ from typing import (
     Union,
     runtime_checkable,
 )
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from pydantic_ome_ngff.base import StrictBase
 
 NodeType = Literal["array", "group"]
@@ -27,13 +27,13 @@ class Node(StrictBase):
 
 
 class Array(Node):
-    node_type: NodeType = Field("array", const=True)
+    node_type: NodeType = "array"
     shape: Tuple[int, ...]
     dtype: str
 
 
 class Group(Node):
-    node_type: NodeType = Field("group", const=True)
+    node_type: NodeType = "group"
     children: List[Union[Group, Array]]
 
 

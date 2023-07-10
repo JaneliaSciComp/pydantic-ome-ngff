@@ -6,6 +6,7 @@ from pydantic import ValidationError
 from pydantic_ome_ngff.tree import Array
 from pydantic_ome_ngff.latest.multiscales import (
     Multiscale,
+    MultiscaleAttrs,
     MultiscaleDataset,
     MultiscaleGroup,
 )
@@ -67,7 +68,7 @@ def default_multiscale():
 
 def test_multiscale(default_multiscale):
     base_schema, strict_schema = fetch_schemas("latest", schema_name="image")
-    jsc.validate({"multiscales": [default_multiscale.dict()]}, strict_schema)
+    jsc.validate({"multiscales": [default_multiscale.model_dump()]}, strict_schema)
 
 
 def test_multiscale_unique_axis_names():
@@ -197,7 +198,7 @@ def test_multiscale_axis_length(num_axes: int):
             ],
         )
     ]
-    with pytest.raises(ValidationError, match="type=value_error.list"):
+    with pytest.raises(ValidationError, match="type=too_(short|long)"):
         Multiscale(
             name="foo",
             axes=axes,
@@ -246,7 +247,7 @@ def test_coordinate_transforms_invalid_ndims():
 def test_coordinate_transforms_invalid_lenght(
     transforms: Tuple[CoordinateTransform, CoordinateTransform]
 ):
-    with pytest.raises(ValidationError, match="ensure this value has at most 2 items"):
+    with pytest.raises(ValidationError, match="should have at most 2 items"):
         MultiscaleDataset(path="foo", coordinateTransformations=transforms)
 
 
@@ -283,7 +284,7 @@ def test_multiscale_group_datasets_exist(default_multiscale: Multiscale):
     ]
     MultiscaleGroup(
         name="",
-        attrs={"multiscales": [default_multiscale.dict()]},
+        attrs=MultiscaleAttrs(multiscales=[default_multiscale]),
         children=good_children,
     )
 
@@ -297,7 +298,7 @@ def test_multiscale_group_datasets_exist(default_multiscale: Multiscale):
         ]
         MultiscaleGroup(
             name="",
-            attrs={"multiscales": [default_multiscale.dict()]},
+            attrs=MultiscaleAttrs(multiscales=[default_multiscale]),
             children=bad_children,
         )
 
@@ -309,7 +310,7 @@ def test_multiscale_group_datasets_rank(default_multiscale: Multiscale):
     ]
     MultiscaleGroup(
         name="",
-        attrs={"multiscales": [default_multiscale.dict()]},
+        attrs=MultiscaleAttrs(multiscales=[default_multiscale]),
         children=good_children,
     )
 
@@ -323,7 +324,7 @@ def test_multiscale_group_datasets_rank(default_multiscale: Multiscale):
         ]
         MultiscaleGroup(
             name="",
-            attrs={"multiscales": [default_multiscale.dict()]},
+            attrs=MultiscaleAttrs(multiscales=[default_multiscale]),
             children=bad_children,
         )
 
@@ -335,6 +336,6 @@ def test_multiscale_group_datasets_rank(default_multiscale: Multiscale):
         ]
         MultiscaleGroup(
             name="",
-            attrs={"multiscales": [default_multiscale.dict()]},
+            attrs=MultiscaleAttrs(multiscales=[default_multiscale]),
             children=bad_children,
         )

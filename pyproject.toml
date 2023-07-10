@@ -9,7 +9,7 @@ packages = [{include = "pydantic_ome_ngff", from="src"}]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-pydantic = "^1.10.4"
+pydantic = "^2.0.0"
 
 
 [tool.poetry.group.dev.dependencies]
