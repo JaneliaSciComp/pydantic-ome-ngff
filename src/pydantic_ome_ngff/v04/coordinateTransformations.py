@@ -1,4 +1,5 @@
 from __future__ import annotations
+from textwrap import TextWrapper
 from typing import List, Literal, Union
 from pydantic_ome_ngff.base import StrictBase
 
@@ -60,11 +61,11 @@ def get_transform_ndim(
     elif transform.type == "translation" and hasattr(transform, "translation"):
         return len(transform.translation)
     else:
-        msg = f"""
-        Transform must be either VectorScaleTransform or VectorTranslationTransform.
-        Got {type(transform)} instead.
-        """
-        raise ValueError(msg)
+        msg = (
+            f"Transform must be either VectorScaleTransform or "
+            f"VectorTranslationTransform. Got {type(transform)} instead."
+        )
+        raise ValueError(TextWrapper.fill(msg))
 
 
 ScaleTransform = Union[VectorScaleTransform, PathTransform]

@@ -10,6 +10,7 @@ from typing import (
     Union,
     runtime_checkable,
 )
+import textwrap
 from pydantic import BaseModel, Field
 from pydantic_ome_ngff.base import StrictBase
 
@@ -74,5 +75,5 @@ def build_tree(element: Union[GroupLike, ArrayLike]) -> Union[Group, Array]:
         result = Group(name=name, attrs=attrs, children=children)
     else:
         msg = f"Object of type {type(element)} cannot be processed."
-        raise ValueError(msg)
+        raise ValueError(textwrap.fill(msg))
     return result

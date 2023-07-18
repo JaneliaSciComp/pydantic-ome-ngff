@@ -21,7 +21,6 @@ from .conftest import fetch_schemas
 @pytest.fixture
 def default_multiscale():
     axes = [
-        Axis(name="c", type="channel", unit=None),
         Axis(name="z", type="space", unit="meter"),
         Axis(name="x", type="space", unit="meter"),
         Axis(name="y", type="space", unit="meter"),
@@ -133,10 +132,15 @@ def test_multiscale_unique_axis_names():
 )
 def test_multiscale_semantic_axis_order(axis_types: List[Optional[str]]):
     units_map = {"space": "meter", "time": "second"}
-    axes = [
-        Axis(name=str(idx), type=t, unit=units_map.get(t, None))
-        for idx, t in enumerate(axis_types)
-    ]
+    axes: list[Axis] = []
+    for idx, t in enumerate(axis_types):
+        if t is None or t == "channel":
+            with pytest.warns(UserWarning, match="Null"):
+                ax = Axis(name=str(idx), type=t, unit=units_map.get(t, None))
+        else:
+            ax = Axis(name=str(idx), type=t, unit=units_map.get(t, None))
+        axes.append(ax)
+
     rank = len(axes)
     datasets = [
         MultiscaleDataset(
@@ -218,10 +222,7 @@ def test_coordinate_transforms_invalid_ndims():
         VectorScaleTransform(scale=(1, 1)),
         VectorTranslationTransform(translation=(1, 1, 1)),
     ]
-    with pytest.raises(
-        ValidationError,
-        match="Elements of coordinateTransformations must have the same dimensionality.",  # noqa
-    ):
+    with pytest.raises(ValidationError, match="Got elements with dimensionality"):
         MultiscaleDataset(path="foo", coordinateTransformations=tforms)
 
 
@@ -278,7 +279,7 @@ def test_coordinate_transforms_invalid_elements(
 
 def test_multiscale_group_datasets_exist(default_multiscale: Multiscale):
     good_children = [
-        Array(name=d.path, shape=(1, 1, 1, 1), dtype="")
+        Array(name=d.path, shape=(1,) * len(default_multiscale.datasets), dtype="")
         for d in default_multiscale.datasets
     ]
     MultiscaleGroup(
@@ -289,7 +290,7 @@ def test_multiscale_group_datasets_exist(default_multiscale: Multiscale):
 
     with pytest.raises(
         ValidationError,
-        match="array with that name was found in the children of that group.",
+        match="must be children of the group.",
     ):
         bad_children = [
             Array(name=d.path + "bla", shape=(1, 1, 1, 1), dtype="")
@@ -304,7 +305,7 @@ def test_multiscale_group_datasets_exist(default_multiscale: Multiscale):
 
 def test_multiscale_group_datasets_rank(default_multiscale: Multiscale):
     good_children = [
-        Array(name=d.path, shape=(1, 1, 1, 1), dtype="")
+        Array(name=d.path, shape=(1,) * len(default_multiscale.datasets), dtype="")
         for d in default_multiscale.datasets
     ]
     MultiscaleGroup(
