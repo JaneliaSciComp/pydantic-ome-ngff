@@ -1,4 +1,6 @@
+from collections import Counter
 from pydantic_ome_ngff.base import StrictVersionedBase
+from pydantic_ome_ngff.utils import duplicates
 from pydantic_ome_ngff.v04.base import version
 import warnings
 from enum import Enum
@@ -129,3 +131,70 @@ class Axis(StrictVersionedBase):
                 UserWarning,
             )
         return unit
+
+
+class Axes(list[Axis]):
+    @classmethod
+    def __get_validators__(cls):
+        yield cls.validate
+
+    @classmethod
+    def validate(cls, v):
+        axes: list[Axis] = []
+        for ax in v:
+            if isinstance(ax, dict):
+                axes.append(Axis.parse_obj(ax))
+            else:
+                axes.append(ax)
+        num_axes = len(axes)
+        if num_axes < 2 or num_axes > 5:
+            msg = (
+                f"Too many axes. Got {num_axes} axes, "
+                "but only 2 - 5 (inclusive) axes are allowed."
+            )
+            raise ValueError(msg)
+
+        name_dupes = duplicates(a.name for a in axes)
+        if len(name_dupes) > 0:
+            msg = (
+                "Axis names must be unique. "
+                f"Axis names {tuple(name_dupes.keys())} are repeated."
+            )
+            raise ValueError(msg)
+        axis_types = [ax.type for ax in axes]
+        type_census = Counter(axis_types)
+        num_spaces = type_census["space"]
+        if num_spaces < 2 or num_spaces > 3:
+            msg = (
+                f"Invalid number of space axes: {num_spaces}. Only 2 or 3 space axes "
+                "are allowed."
+            )
+            raise ValueError(msg)
+
+        elif not all(a == "space" for a in axis_types[-num_spaces:]):
+            msg = f"Space axes must come last. Got axes with order: {axis_types}"
+            raise ValueError(msg)
+
+        if (num_times := type_census["time"]) > 1:
+            msg = (
+                f"Invalid number of time axes: {num_times}. "
+                "Only 1 time axis is allowed."
+            )
+            raise ValueError(msg)
+
+        if (num_channels := type_census["channel"]) > 1:
+            msg = (
+                f"Invalid number of channel axes: {num_channels}. "
+                "Only 1 channel axis is allowed."
+            )
+            raise ValueError(msg)
+
+        custom_axes = set(axis_types) - set(AxisType._member_names_)
+        if len(custom_axes) > 1:
+            msg = (
+                f"Invalid number of custom axes: {custom_axes}. Only 1 custom axis is"
+                " allowed"
+            )
+            raise ValueError(msg)
+
+        return cls(axes)

@@ -1,67 +1,18 @@
-from collections import Counter
 import warnings
 from typing import Any, Dict, List, Optional, Union, Tuple, cast
 
-from pydantic import Field, conlist, root_validator, validator
+from pydantic import root_validator, validator
 
-from pydantic_ome_ngff.utils import duplicates
 from pydantic_ome_ngff.base import StrictBase, StrictVersionedBase
 from pydantic_ome_ngff.tree import Group, Attrs, Array
 from pydantic_ome_ngff.v04.base import version
-from pydantic_ome_ngff.v04.axes import Axis, AxisType
+from pydantic_ome_ngff.v04.axes import Axes
 import pydantic_ome_ngff.v04.coordinateTransformations as ctx
 
 
 class MultiscaleDataset(StrictBase):
     path: str
-    coordinateTransformations: conlist(
-        Union[ctx.ScaleTransform, ctx.TranslationTransform], min_items=1, max_items=2
-    )
-
-    @validator("coordinateTransformations")
-    def check_transforms_dimensionality(
-        cls,
-        transforms: List[
-            Union[ctx.VectorScaleTransform, ctx.VectorTranslationTransform]
-        ],
-    ) -> List[Union[ctx.VectorScaleTransform, ctx.VectorTranslationTransform]]:
-        ndims = []
-        for tx in transforms:
-            # this repeated conditional logic around transforms is so awful.
-            if type(tx) in (ctx.VectorScaleTransform, ctx.VectorTranslationTransform):
-                ndims.append(ctx.get_transform_ndim(tx))
-        if len(set(ndims)) > 1:
-            raise ValueError(
-                f"""
-            Elements of coordinateTransformations must have the same dimensionality. Got
-            elements with dimensionality = {ndims}.
-            """
-            )
-        return transforms
-
-    @validator("coordinateTransformations")
-    def check_transforms_types(
-        cls,
-        transforms: List[
-            Union[ctx.VectorScaleTransform, ctx.VectorTranslationTransform]
-        ],
-    ) -> List[Union[ctx.VectorScaleTransform, ctx.VectorTranslationTransform]]:
-        if (tform := transforms[0].type) != "scale":
-            raise ValueError(
-                f"""
-            The first element of coordinateTransformations must be a scale transform.
-            Got {tform} instead.
-            """
-            )
-        if len(transforms) == 2:
-            if (tform := transforms[1].type) != "translation":
-                raise ValueError(
-                    f"""
-                The second element of coordinateTransformations must be a translation 
-                transform. got {tform} instead.
-                """
-                )
-        return transforms
+    coordinateTransformations: ctx.Transforms
 
 
 class Multiscale(StrictVersionedBase):
@@ -86,75 +37,41 @@ class Multiscale(StrictVersionedBase):
     datasets: List[MultiscaleDataset]
     # SPEC: should not exist at top level and instead
     # live in dataset metadata or in .datasets
-    axes: List[Axis] = Field(..., min_items=2, max_items=5)
+    axes: Axes
     # SPEC: should not live here, and if it is here,
     # it should default to an empty list instead of being nullable
-    coordinateTransformations: Optional[
-        List[Union[ctx.ScaleTransform, ctx.TranslationTransform]]
-    ]
+    coordinateTransformations: Optional[ctx.Transforms]
+
+    @validator("datasets")
+    def check_datasets_tform_ndim(cls, v):
+        ndims = [ds.coordinateTransformations.ndim for ds in v]
+        if len(set(ndims)) > 1:
+            raise ValueError
+        return v
 
     @validator("name")
     def check_name(cls, name: str) -> str:
         if name is None:
-            warnings.warn(
-                f"""
-            The name field was set to None. Version {cls._version} of the OME-NGFF spec 
-            states that the `name` field of a Multiscales object should not be None.
-            """
+            msg = (
+                f"The name field was set to None. Version {cls._version} of the "
+                "OME-NGFF spec states that the `name` field of a Multiscales object "
+                "should not be None."
             )
+            warnings.warn(msg)
         return name
 
-    @validator("axes")
-    def check_axes(cls, axes: List[Axis]) -> List[Axis]:
-        name_dupes = duplicates(a.name for a in axes)
-        if len(name_dupes) > 0:
-            raise ValueError(
-                f"""
-                Axis names must be unique. Axis names {tuple(name_dupes.keys())} are 
-                repeated.
-                """
-            )
-        axis_types = [ax.type for ax in axes]
-        type_census = Counter(axis_types)
-        num_spaces = type_census["space"]
-        if num_spaces < 2 or num_spaces > 3:
-            raise ValueError(
-                f"""
-                Invalid number of space axes: {num_spaces}. Only 2 or 3 space axes 
-                are allowed.
-                """
-            )
-
-        elif not all(a == "space" for a in axis_types[-num_spaces:]):
-            raise ValueError(
-                f"""
-                Space axes must come last. Got axes with order: {axis_types}
-                """
-            )
-
-        if (num_times := type_census["time"]) > 1:
-            raise ValueError(
-                f"""
-                Invalid number of time axes: {num_times}. Only 1 time axis is allowed.
-                """
-            )
-
-        if (num_channels := type_census["channel"]) > 1:
-            raise ValueError(
-                f"""
-                Invalid number of channel axes: {num_channels}. Only 1 channel axis is 
-                allowed.
-                """
-            )
-
-        custom_axes = set(axis_types) - set(AxisType._member_names_)
-        if len(custom_axes) > 1:
-            raise ValueError(
-                f"""Invalid number of custom axes: {custom_axes}. Only 1 custom axis is
-                allowed.
-                """
-            )
-        return axes
+    @root_validator
+    def check_axes_transforms(cls, v: Any):
+        if "datasets" in v and "axes" in v:
+            ds_ndims = v["datasets"][0].coordinateTransformations.ndim
+            if len(v["axes"]) != ds_ndims:
+                msg = (
+                    f"Mismatched dimensionality. Number of axes ({len(v['axes'])}) "
+                    "does not align with the dimensionality of the coordinate "
+                    f"transformations defined in the datasets ({ds_ndims})."
+                )
+                raise ValueError(msg)
+        return v
 
 
 class MultiscaleAttrs(Attrs):
@@ -203,12 +120,11 @@ class MultiscaleGroup(Group):
 
         ndims = tuple(len(a.shape) for a in array_children)
         if len(set(ndims)) > 1:
-            raise ValueError(
-                f"""
-            All arrays must have the same dimensionality. Got arrays with dimensionality
-            {ndims}. 
-            """
+            msg = (
+                "All arrays must have the same dimensionality. "
+                f"Got arrays with dimensionality {ndims}."
             )
+            raise ValueError(msg)
 
         # check that each transform has compatible rank
         for multiscale in multiscales:
@@ -224,7 +140,7 @@ class MultiscaleGroup(Group):
                         Union[ctx.VectorScaleTransform, ctx.VectorTranslationTransform],
                         tform,
                     )
-                    if (tform_dims := ctx.get_transform_ndim(tform)) not in set(ndims):
+                    if (tform_dims := tform.ndim) not in set(ndims):
                         raise ValueError(
                             f"""
                         Transform {tform} has dimensionality {tform_dims} which does not
