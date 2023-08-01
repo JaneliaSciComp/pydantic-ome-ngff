@@ -1,9 +1,11 @@
+from __future__ import annotations
 from pydantic_ome_ngff.base import StrictVersionedBase
 from pydantic_ome_ngff.v04.base import version
 import warnings
 from enum import Enum
 from typing import Any, Dict, Optional
 from pydantic import validator
+import textwrap
 
 
 class AxisType(str, Enum):
@@ -81,51 +83,41 @@ class Axis(StrictVersionedBase):
 
     @validator("unit")
     def check_unit(cls, unit: str, values: Dict[str, AxisType]) -> str:
-        type = values["type"]
-        if type == AxisType.space:
+        typ = values["type"]
+        if typ == AxisType.space:
             if unit not in SpaceUnit.__members__:
-                warnings.warn(
-                    f"""
-                Unit "{unit}" is not recognized as a standard unit for an axis with 
-                type "{type}".
-                """,
-                    UserWarning,
+                msg = (
+                    f'Unit "{unit}" is not recognized as a standard unit for an '
+                    f'axis with type "{typ}".'
                 )
-        elif type == AxisType.time:
-            if unit not in TimeUnit.__members__:
-                warnings.warn(
-                    f"""
-                Unit "{unit}" is not recognized as a standard unit for an axis with 
-                type "{type}".
-                """,
-                    UserWarning,
-                )
-        elif type == AxisType.channel:
-            pass
-        elif type is None:
-            warnings.warn(
-                f"""
-             Null axis type. Version {cls._version} of the OME-NGFF spec states that 
-             the "type" field of an axis should be set to a string.
-            """,
-                UserWarning,
-            )
-        else:
-            warnings.warn(
-                f"""
-            Unknown axis type "{type}". Version {cls._version} of the OME-NGFF spec 
-            states that the "type" field of an axis should be one of 
-            {AxisType._member_names_}.
-            """,
-                UserWarning,
-            )
+                warnings.warn(textwrap.fill(msg))
 
-        if unit is None:
-            warnings.warn(
-                f"""
-            Null unit. Version {cls._version} of the OME-NGFF spec states
-            that the `unit` field of an axis should be set to a string.
-            """,
-                UserWarning,
+        elif typ == AxisType.time:
+            if unit not in TimeUnit.__members__:
+                msg = (
+                    f'Unit "{unit}" is not recognized as a standard unit for an '
+                    f'axis with type "{typ}".'
+                )
+                warnings.warn(textwrap.fill(msg))
+        elif typ == AxisType.channel:
+            pass
+        elif typ is None:
+            msg = (
+                f"Null axis type. Version {cls._version} of the OME-NGFF spec "
+                "states that the `type` field of an axis should be a string."
             )
+            warnings.warn(textwrap.fill(msg))
+        else:
+            msg = (
+                f'Unknown axis type "{typ}". Version {cls._version} of the '
+                "OME-NGFF spec states that the `type` field of an axis should be "
+                f"one of {AxisType._member_names_}."
+            )
+            warnings.warn(textwrap.fill(msg))
+        if unit is None:
+            msg = (
+                f"Null unit. Version {cls._version} of the OME-NGFF spec states "
+                "that the `unit` field of an axis should be a string."
+            )
+            warnings.warn(textwrap.fill(msg))
         return unit

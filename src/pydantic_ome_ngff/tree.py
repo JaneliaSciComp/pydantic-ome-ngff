@@ -1,5 +1,5 @@
+from __future__ import annotations
 from typing import (
-    Union,
     Protocol,
     Tuple,
     Dict,
@@ -7,8 +7,10 @@ from typing import (
     Iterable,
     Literal,
     List,
+    Union,
     runtime_checkable,
 )
+import textwrap
 from pydantic import BaseModel, Field
 from pydantic_ome_ngff.base import StrictBase
 
@@ -33,7 +35,7 @@ class Array(Node):
 
 class Group(Node):
     node_type: NodeType = Field("group", const=True)
-    children: List[Union["Group", Array]]
+    children: List[Union[Group, Array]]
 
 
 class NodeLike(Protocol):
@@ -49,7 +51,7 @@ class ArrayLike(NodeLike, Protocol):
 
 @runtime_checkable
 class GroupLike(NodeLike, Protocol):
-    def values(self) -> Iterable[Union["GroupLike", ArrayLike]]:
+    def values(self) -> Iterable[Union[GroupLike, ArrayLike]]:
         """
         Iterable of the children of this group
         """
@@ -72,5 +74,6 @@ def build_tree(element: Union[GroupLike, ArrayLike]) -> Union[Group, Array]:
         children = list(map(build_tree, element.values()))
         result = Group(name=name, attrs=attrs, children=children)
     else:
-        raise ValueError(f"Object of type {type(element)} cannot be processed.")
+        msg = f"Object of type {type(element)} cannot be processed."
+        raise ValueError(textwrap.fill(msg))
     return result

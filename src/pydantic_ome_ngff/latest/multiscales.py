@@ -1,9 +1,11 @@
+from __future__ import annotations
 from collections import Counter
+import textwrap
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 import warnings
 
-from pydantic import conlist, root_validator, validator, Field
-from pydantic_ome_ngff.base import StrictBase, StrictVersionedBase
+from pydantic import BaseModel, conlist, root_validator, validator
+from pydantic_ome_ngff.base import VersionedBase
 from pydantic_ome_ngff.latest.base import version
 from pydantic_ome_ngff.latest import coordinateTransformations as ctx
 from pydantic_ome_ngff.tree import Array, Attrs, Group
@@ -12,7 +14,7 @@ from pydantic_ome_ngff.v04.axes import AxisType
 from pydantic_ome_ngff.latest.axes import Axis
 
 
-class MultiscaleDataset(StrictBase):
+class MultiscaleDataset(BaseModel):
     path: str
     coordinateTransformations: conlist(
         Union[ctx.ScaleTransform, ctx.TranslationTransform], min_items=1, max_items=2
@@ -31,12 +33,11 @@ class MultiscaleDataset(StrictBase):
             if type(tx) in (ctx.VectorScaleTransform, ctx.VectorTranslationTransform):
                 ndims.append(ctx.get_transform_ndim(tx))
         if len(set(ndims)) > 1:
-            raise ValueError(
-                f"""
-            Elements of coordinateTransformations must have the same dimensionality. Got
-            elements with dimensionality = {ndims}.
-            """
+            msg = (
+                "Elements of coordinateTransformations must have the same "
+                f"dimensionality. Got elements with dimensionality = {ndims}."
             )
+            raise ValueError(textwrap.fill(msg))
         return transforms
 
     @validator("coordinateTransformations")
@@ -44,24 +45,22 @@ class MultiscaleDataset(StrictBase):
         cls, transforms: List[ctx.CoordinateTransform]
     ) -> List[ctx.CoordinateTransform]:
         if (tform := transforms[0].type) != "scale":
-            raise ValueError(
-                f"""
-            The first element of coordinateTransformations must be a scale transform.
-            Got {tform} instead.
-            """
+            msg = (
+                "The first element of coordinateTransformations must be a scale "
+                f"transform. Got {tform} instead."
             )
+            raise ValueError(textwrap.fill(msg))
         if len(transforms) == 2:
             if (tform := transforms[1].type) != "translation":
-                raise ValueError(
-                    f"""
-                The second element of coordinateTransformations must be a translation 
-                transform. got {tform} instead.
-                """
+                msg = (
+                    "The second element of coordinateTransformations must be a "
+                    f"translation transform. Got {tform} instead."
                 )
+                raise ValueError(textwrap.fill(msg))
         return transforms
 
 
-class Multiscale(StrictVersionedBase):
+class Multiscale(VersionedBase):
     """
     Multiscale image metadata.
     See https://ngff.openmicroscopy.org/latest/#multiscale-md
@@ -70,8 +69,8 @@ class Multiscale(StrictVersionedBase):
     # we need to put the version here as a private class attribute because the version
     # is not required by the spec...
     _version = version
-    # SPEC: why is this optional? why is it untyped?
-    version: Optional[Any] = version
+
+    version: str = version
     # SPEC: why is this nullable instead of reserving the empty string
     # SPEC: untyped!
     name: Optional[Any]
@@ -83,7 +82,7 @@ class Multiscale(StrictVersionedBase):
     datasets: List[MultiscaleDataset]
     # SPEC: should not exist at top level and instead
     # live in dataset metadata or in .datasets
-    axes: List[Axis] = Field(..., min_items=2, max_items=5)
+    axes: conlist(Axis, min_items=2, max_items=5)
     # SPEC: should not live here, and if it is here,
     # it should default to an empty list instead of being nullable
     coordinateTransformations: Optional[
@@ -93,64 +92,58 @@ class Multiscale(StrictVersionedBase):
     @validator("name")
     def check_name(cls, name: Optional[str]) -> Optional[str]:
         if name is None:
-            warnings.warn(
-                f"""
-            The name field was set to None. Version {cls._version} of the OME-NGFF spec 
-            states that the `name` field of a Multiscales object should not be None.
-            """
+            msg = (
+                f"The name field was set to `None`. Version {cls._version} of the "
+                "OME-NGFF spec states that the `name` field of a Multiscales object "
+                "should not be None."
             )
+            warnings.warn(textwrap.fill(msg))
         return name
 
     @validator("axes")
     def check_axes(cls, axes: List[Axis]) -> List[Axis]:
         name_dupes = duplicates(a.name for a in axes)
         if len(name_dupes) > 0:
-            raise ValueError(
-                f"""
-                Axis names must be unique. Axis names {tuple(name_dupes.keys())} are 
-                repeated.
-                """
+            msg = (
+                f"Axis names must be unique. Axis names {tuple(name_dupes.keys())} "
+                "are repeated."
             )
+            raise ValueError(textwrap.fill(msg))
         axis_types = tuple(ax.type for ax in axes)
         type_census = Counter(axis_types)
         num_spaces = type_census["space"]
         if num_spaces < 2 or num_spaces > 3:
-            raise ValueError(
-                f"""
-                Invalid number of space axes: {num_spaces}. Only 2 or 3 space axes 
-                are allowed.
-                """
+            msg = (
+                f"Invalid number of space axes: {num_spaces}. Only 2 or 3 space "
+                "axes are allowed."
             )
+            raise ValueError(textwrap.fill(msg))
 
         elif not all(a == "space" for a in axis_types[-num_spaces:]):
-            raise ValueError(
-                f"""
-                Space axes must come last. Got axes with order: {axis_types}
-                """
-            )
+            msg = f"Space axes must come last. Got axes with order: {axis_types}"
+            raise ValueError(textwrap.fill(msg))
 
         if (num_times := type_census["time"]) > 1:
-            raise ValueError(
-                f"""
-                Invalid number of time axes: {num_times}. Only 1 time axis is allowed.
-                """
+            msg = (
+                f"Invalid number of time axes: {num_times}. "
+                "Only 1 time axis is allowed."
             )
+            raise ValueError(textwrap.fill(msg))
 
         if (num_channels := type_census["channel"]) > 1:
-            raise ValueError(
-                f"""
-                Invalid number of channel axes: {num_channels}. Only 1 channel axis is 
-                allowed.
-                """
+            msg = (
+                f"Invalid number of channel axes: {num_channels}. "
+                "Only 1 channel axis is allowed."
             )
+            raise ValueError(textwrap.fill(msg))
 
         custom_axes = set(axis_types) - set(AxisType._member_names_)
         if len(custom_axes) > 1:
-            raise ValueError(
-                f"""Invalid number of custom axes: {custom_axes}. Only 1 custom axis is
-                allowed.
-                """
+            msg = (
+                f"Invalid number of custom axes: {custom_axes}. "
+                "Only 1 custom axis is allowed."
             )
+            raise ValueError(textwrap.fill(msg))
         return axes
 
 
@@ -182,13 +175,13 @@ class MultiscaleGroup(Group):
         for multiscale in multiscales:
             for dataset in multiscale.datasets:
                 if (dpath := dataset.path) not in child_array_names:
-                    raise ValueError(
-                        f"""
-                    Dataset {dpath} was specified in multiscale metadata, but no 
-                    array with that name was found in the children of that group. All 
-                    arrays in multiscale metadata must be children of the group.
-                    """
+                    msg = (
+                        f"Dataset {dpath} was specified in multiscale metadata, "
+                        "but no array with that name was found in the children of "
+                        "that group. All arrays in multiscale metadata must be "
+                        "children of the group."
                     )
+                    raise ValueError(textwrap.fill(msg))
         return values
 
     @root_validator
@@ -200,12 +193,11 @@ class MultiscaleGroup(Group):
 
         ndims = [len(a.shape) for a in array_children]
         if len(set(ndims)) > 1:
-            raise ValueError(
-                f"""
-            All arrays must have the same dimensionality. Got arrays with dimensionality
-            {ndims}. 
-            """
+            msg = (
+                "All arrays must have the same dimensionality. "
+                f"Got arrays with dimensionality {ndims}."
             )
+            raise ValueError(textwrap.fill(msg))
 
         # check that each transform has compatible rank
         for multiscale in multiscales:
@@ -221,12 +213,11 @@ class MultiscaleGroup(Group):
                         tform,
                     )
                     if (tform_dims := ctx.get_transform_ndim(tform)) not in set(ndims):
-                        raise ValueError(
-                            f"""
-                        Transform {tform} has dimensionality {tform_dims} which does not
-                        match the dimensionality of the arrays in this group ({ndims}). 
-                        Transform dimensionality must match array 
-                        dimensionality.
-                        """
+                        msg = (
+                            f"Transform {tform} has dimensionality {tform_dims} which "
+                            "does not match the dimensionality of the arrays in this "
+                            "group ({ndims}). Transform dimensionality must match "
+                            "array dimensionality."
                         )
+                        raise ValueError(textwrap.fill(msg))
         return values

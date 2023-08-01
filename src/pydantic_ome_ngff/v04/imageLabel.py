@@ -1,10 +1,10 @@
+from __future__ import annotations
 import warnings
 from typing import List, Optional, Tuple
-
+import textwrap
 from pydantic import BaseModel, Field, validator
 from pydantic_ome_ngff.base import VersionedBase
 from pydantic_ome_ngff.utils import duplicates
-
 from pydantic_ome_ngff.v04.base import version
 
 
@@ -40,33 +40,30 @@ class ImageLabel(VersionedBase):
     @validator("version")
     def check_version(cls, ver: str) -> str:
         if ver is None:
-            warnings.warn(
-                f"""
+            msg = f"""
             The field "version" is "None". Version {cls._version} of
             the OME-NGFF spec states that "version" must either be unset or the string
             "{cls._version}"
             """
-            )
+            warnings.warn(textwrap.fill(msg))
         return ver
 
     @validator("colors")
     def check_colors(cls, colors: Optional[List[Color]]) -> Optional[List[Color]]:
         if colors is None:
-            warnings.warn(
-                f"""
+            msg = f"""
             The field "colors" is "None". Version {cls._version} of
             the OME-NGFF spec states that "colors" should be a list of label 
             descriptors.
             """
-            )
+            warnings.warn(textwrap.fill(msg))
         else:
             dupes = duplicates(x.label_value for x in colors)
             if len(dupes) > 1:
-                raise ValueError(
-                    f"""
+                msg = f"""
                     Duplicated label-value: {tuple(dupes.keys())}.
                     label-values must be unique across elements of `colors`
                     """
-                )
+                raise ValueError(textwrap.fill(msg))
 
         return colors

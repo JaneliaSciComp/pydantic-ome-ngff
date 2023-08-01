@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Optional
 from pydantic_ome_ngff.latest.base import version
 from pydantic_ome_ngff.v04.well import Well as WellV04
