@@ -4,8 +4,8 @@ import textwrap
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 import warnings
 
-from pydantic import conlist, root_validator, validator
-from pydantic_ome_ngff.base import StrictBase, StrictVersionedBase
+from pydantic import BaseModel, conlist, root_validator, validator
+from pydantic_ome_ngff.base import VersionedBase
 from pydantic_ome_ngff.latest.base import version
 from pydantic_ome_ngff.latest import coordinateTransformations as ctx
 from pydantic_ome_ngff.tree import Array, Attrs, Group
@@ -14,7 +14,7 @@ from pydantic_ome_ngff.v04.axes import AxisType
 from pydantic_ome_ngff.latest.axes import Axis
 
 
-class MultiscaleDataset(StrictBase):
+class MultiscaleDataset(BaseModel):
     path: str
     coordinateTransformations: conlist(
         Union[ctx.ScaleTransform, ctx.TranslationTransform], min_items=1, max_items=2
@@ -60,7 +60,7 @@ class MultiscaleDataset(StrictBase):
         return transforms
 
 
-class Multiscale(StrictVersionedBase):
+class Multiscale(VersionedBase):
     """
     Multiscale image metadata.
     See https://ngff.openmicroscopy.org/latest/#multiscale-md
@@ -69,8 +69,8 @@ class Multiscale(StrictVersionedBase):
     # we need to put the version here as a private class attribute because the version
     # is not required by the spec...
     _version = version
-    # SPEC: why is this optional? why is it untyped?
-    version: Optional[Any] = version
+
+    version: str = version
     # SPEC: why is this nullable instead of reserving the empty string
     # SPEC: untyped!
     name: Optional[Any]

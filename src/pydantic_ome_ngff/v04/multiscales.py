@@ -4,17 +4,17 @@ import textwrap
 import warnings
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
-from pydantic import conlist, root_validator, validator
+from pydantic import BaseModel, conlist, root_validator, validator
 
 from pydantic_ome_ngff.utils import duplicates
-from pydantic_ome_ngff.base import StrictBase, StrictVersionedBase
+from pydantic_ome_ngff.base import VersionedBase
 from pydantic_ome_ngff.tree import Group, Attrs, Array
 from pydantic_ome_ngff.v04.base import version
 from pydantic_ome_ngff.v04.axes import Axis, AxisType
 import pydantic_ome_ngff.v04.coordinateTransformations as ctx
 
 
-class MultiscaleDataset(StrictBase):
+class MultiscaleDataset(BaseModel):
     path: str
     coordinateTransformations: conlist(
         Union[ctx.ScaleTransform, ctx.TranslationTransform], min_items=1, max_items=2
@@ -64,7 +64,7 @@ class MultiscaleDataset(StrictBase):
         return transforms
 
 
-class Multiscale(StrictVersionedBase):
+class Multiscale(VersionedBase):
     """
     Multiscale image metadata.
     See https://ngff.openmicroscopy.org/0.4/#multiscale-md

@@ -1,10 +1,10 @@
 from __future__ import annotations
-from textwrap import TextWrapper
+import textwrap
 from typing import List, Literal, Union
-from pydantic_ome_ngff.base import StrictBase
+from pydantic import BaseModel
 
 
-class IdentityTransform(StrictBase):
+class IdentityTransform(BaseModel):
     """
     An identity transform with no parameters.
     See https://ngff.openmicroscopy.org/0.4/#trafo-md
@@ -14,7 +14,7 @@ class IdentityTransform(StrictBase):
     type: str = "identity"
 
 
-class PathTransform(StrictBase):
+class PathTransform(BaseModel):
     """
     A coordinateTransform with a `path` field.
     See https://ngff.openmicroscopy.org/0.4/#trafo-md
@@ -28,7 +28,7 @@ class PathTransform(StrictBase):
     path: str
 
 
-class VectorTranslationTransform(StrictBase):
+class VectorTranslationTransform(BaseModel):
     """
     A translation transform with a `translate` field that is a vector.
     See https://ngff.openmicroscopy.org/0.4/#trafo-md
@@ -40,7 +40,7 @@ class VectorTranslationTransform(StrictBase):
     ]  # SPEC: redundant field name -- we already know it's translation
 
 
-class VectorScaleTransform(StrictBase):
+class VectorScaleTransform(BaseModel):
     """
     A scale transform with a `scale` field that is a vector.
     See https://ngff.openmicroscopy.org/0.4/#trafo-md
@@ -65,7 +65,7 @@ def get_transform_ndim(
             f"Transform must be either VectorScaleTransform or "
             f"VectorTranslationTransform. Got {type(transform)} instead."
         )
-        raise ValueError(TextWrapper.fill(msg))
+        raise ValueError(textwrap.fill(msg))
 
 
 ScaleTransform = Union[VectorScaleTransform, PathTransform]
