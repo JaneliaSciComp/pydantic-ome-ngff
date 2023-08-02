@@ -1,12 +1,16 @@
 from __future__ import annotations
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Type
 import jsonschema as jsc
 import pytest
-from pydantic import ValidationError
+from pydantic import ValidationError, BaseModel
 from pydantic_ome_ngff.tree import Array
-from .conftest import fetch_schemas
+from pydantic_ome_ngff.v04.imageLabel import ImageLabel
+from pydantic_ome_ngff.v04.plate import Plate
+from pydantic_ome_ngff.v04.well import Well
+from .conftest import fetch_schemas, JsonLoader
 from pydantic_ome_ngff.v04.multiscales import (
     Multiscale,
+    MultiscaleAttrs,
     MultiscaleDataset,
     MultiscaleGroup,
 )
@@ -16,6 +20,8 @@ from pydantic_ome_ngff.v04.coordinateTransformations import (
     VectorTranslationTransform,
 )
 from pydantic_ome_ngff.v04.axes import Axis
+
+loader = JsonLoader("v04")
 
 
 @pytest.fixture
@@ -342,3 +348,25 @@ def test_multiscale_group_datasets_rank(default_multiscale: Multiscale):
             attrs={"multiscales": [default_multiscale.dict()]},
             children=bad_children,
         )
+
+
+@pytest.mark.parametrize(
+    ("fname", "key", "Class"),
+    [
+        ("image-label", "image-label", ImageLabel),
+        ("plate0", "plate", Plate),
+        ("plate1", "plate", Plate),
+        ("well0", "well", Well),
+        ("well1", "well", Well),
+        (
+            "multiscales",
+            None,
+            MultiscaleAttrs,
+        ),
+    ],
+)
+def test_examples(fname: str, key: str, Class: Type[BaseModel]):
+    obj = loader.load_obj(fname)
+    if key is not None:
+        obj = obj[key]
+    Class.parse_obj(obj)
