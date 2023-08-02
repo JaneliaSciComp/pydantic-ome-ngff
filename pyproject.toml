@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pydantic-ome-ngff"
-version = "0.2.3"
+version = "0.3.0"
 description = "Pydantic models for the OME-NGFF"
 authors = ["Davis Vann Bennett <davis.v.bennett@gmail.com>"]
 license = "MIT"
