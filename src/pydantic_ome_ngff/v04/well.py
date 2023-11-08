@@ -12,7 +12,7 @@ class Image(BaseModel):
     acquisition: Optional[int]
 
 
-class Well(VersionedBase):
+class WellMeta(VersionedBase):
     """
     Well metadata.
     See https://ngff.openmicroscopy.org/0.4/#well-md

@@ -1,10 +1,10 @@
 from __future__ import annotations
 from typing import Optional
 from pydantic_ome_ngff.latest.base import version
-from pydantic_ome_ngff.v04.well import Well as WellV04
+from pydantic_ome_ngff.v04.well import WellMeta as WellMetaV04
 
 
-class Well(WellV04):
+class WellMeta(WellMetaV04):
     """
     Well metadata.
     See https://ngff.openmicroscopy.org/latest/#well-md
