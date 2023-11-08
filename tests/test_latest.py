@@ -2,7 +2,7 @@ from typing import Tuple, List, Optional
 import jsonschema as jsc
 import pytest
 from pydantic import ValidationError
-from pydantic_zarr import ArraySpec
+from pydantic_zarr.v2 import ArraySpec
 from pydantic_ome_ngff.latest.multiscales import (
     Multiscale,
     MultiscaleAttrs,
@@ -175,7 +175,7 @@ def test_multiscale_semantic_axis_order(axis_types: List[Optional[str]]):
 
 
 @pytest.mark.parametrize("num_axes", (0, 1, 6, 7))
-def test_multiscale_axis_length(num_axes: int):
+def test_multiscale_axis_length(num_axes: int) -> None:
     rank = num_axes
     axes = [Axis(name=str(idx), type="space", unit="meter") for idx in range(num_axes)]
     datasets = [
@@ -197,7 +197,7 @@ def test_multiscale_axis_length(num_axes: int):
             ],
         )
     ]
-    with pytest.raises(ValidationError, match="type=value_error.list"):
+    with pytest.raises(ValidationError, match="List should have"):
         Multiscale(
             name="foo",
             axes=axes,
@@ -243,10 +243,10 @@ def test_coordinate_transforms_invalid_ndims():
         ],
     ),
 )
-def test_coordinate_transforms_invalid_lenght(
+def test_coordinate_transforms_invalid_length(
     transforms: Tuple[CoordinateTransform, CoordinateTransform]
-):
-    with pytest.raises(ValidationError, match="ensure this value has at most 2 items"):
+) -> None:
+    with pytest.raises(ValidationError, match="List should have at most 2 items"):
         MultiscaleDataset(path="foo", coordinateTransformations=transforms)
 
 
@@ -269,20 +269,22 @@ def test_coordinate_transforms_invalid_lenght(
 )
 def test_coordinate_transforms_invalid_elements(
     transforms: Tuple[CoordinateTransform, CoordinateTransform]
-):
+) -> None:
     with pytest.raises(
         ValidationError, match="element of coordinateTransformations must be a"
     ):
         MultiscaleDataset(path="foo", coordinateTransformations=transforms)
 
 
-def test_multiscale_group_datasets_exist(default_multiscale: Multiscale):
+def test_multiscale_group_datasets_exist(default_multiscale: Multiscale) -> None:
     group_attrs = MultiscaleAttrs(multiscales=[default_multiscale])
     good_items = {
-        d.path: ArraySpec(shape=(1, 1, 1, 1), dtype="", chunks=(1, 1, 1, 1), attrs={})
+        d.path: ArraySpec(
+            shape=(1, 1, 1, 1), dtype="uint8", chunks=(1, 1, 1, 1), attributes={}
+        )
         for d in default_multiscale.datasets
     }
-    MultiscaleGroup(attrs=group_attrs, items=good_items)
+    MultiscaleGroup(attributes=group_attrs, members=good_items)
 
     with pytest.raises(
         ValidationError,
@@ -291,21 +293,23 @@ def test_multiscale_group_datasets_exist(default_multiscale: Multiscale):
         bad_items = {
             d.path
             + "x": ArraySpec(
-                shape=(1, 1, 1, 1), dtype="", chunks=(1, 1, 1, 1), attrs={}
+                shape=(1, 1, 1, 1), dtype="uint8", chunks=(1, 1, 1, 1), attributes={}
             )
             for d in default_multiscale.datasets
         }
-        MultiscaleGroup(attrs=group_attrs, items=bad_items)
+        MultiscaleGroup(attributes=group_attrs, members=bad_items)
 
 
-def test_multiscale_group_datasets_rank(default_multiscale: Multiscale):
+def test_multiscale_group_datasets_rank(default_multiscale: Multiscale) -> None:
     group_attrs = MultiscaleAttrs(multiscales=[default_multiscale])
     good_items = {
-        d.path: ArraySpec(shape=(1, 1, 1, 1), dtype="", chunks=(1, 1, 1, 1), attrs={})
+        d.path: ArraySpec(
+            shape=(1, 1, 1, 1), dtype="uint8", chunks=(1, 1, 1, 1), attributes={}
+        )
         for d in default_multiscale.datasets
     }
 
-    MultiscaleGroup(attrs=group_attrs, items=good_items)
+    MultiscaleGroup(attributes=group_attrs, members=good_items)
 
     with pytest.raises(
         ValidationError, match="All arrays must have the same dimensionality."
@@ -313,16 +317,19 @@ def test_multiscale_group_datasets_rank(default_multiscale: Multiscale):
         # arrays with varying rank
         bad_items = {
             d.path: ArraySpec(
-                shape=(1,) * (idx + 1), dtype="", chunks=(1,) * (idx + 1), attrs={}
+                shape=(1,) * (idx + 1),
+                dtype="uint8",
+                chunks=(1,) * (idx + 1),
+                attributes={},
             )
             for idx, d in enumerate(default_multiscale.datasets)
         }
-        MultiscaleGroup(attrs=group_attrs, items=bad_items)
+        MultiscaleGroup(attributes=group_attrs, members=bad_items)
 
     with pytest.raises(ValidationError, match="Transform dimensionality"):
         # arrays with rank that doesn't match the transform
         bad_items = {
-            d.path: ArraySpec(shape=(1,), dtype="", chunks=(1,), attrs={})
+            d.path: ArraySpec(shape=(1,), dtype="uint8", chunks=(1,), attributes={})
             for d in default_multiscale.datasets
         }
-        MultiscaleGroup(attrs=group_attrs, items=bad_items)
+        MultiscaleGroup(attributes=group_attrs, members=bad_items)

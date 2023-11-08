@@ -2,13 +2,14 @@ from typing import List, Optional
 
 from pydantic import BaseModel, PositiveInt
 from pydantic_ome_ngff.base import VersionedBase
-
 from pydantic_ome_ngff.v04.base import version
+from pydantic_zarr.v2 import GroupSpec, ArraySpec
+from typing import Union
 
 
 class Acquisition(BaseModel):
     id: PositiveInt
-    name: Optional[str]
+    name: Optional[str] = None
     maximumfieldcount: PositiveInt
 
 
@@ -16,14 +17,14 @@ class Entry(BaseModel):
     name: str
 
 
-class Well(BaseModel):
+class WellMeta(BaseModel):
     # must be {rowName}/{columnName}
     path: str
     rowIndex: PositiveInt
     columnIndex: PositiveInt
 
 
-class Plate(VersionedBase):
+class PlateMeta(VersionedBase):
     """
     Plate metadata
     see https://ngff.openmicroscopy.org/0.4/#plate-md
@@ -33,9 +34,17 @@ class Plate(VersionedBase):
     # is not required by the spec...
     _version = version
     version: Optional[str] = version
-    name: Optional[str]
+    name: Optional[str] = None
     acquisitions: List[Acquisition]
     columns: List[Entry]
     rows: List[Entry]
     field_count: PositiveInt
-    wells: List[Well]
+    wells: List[WellMeta]
+
+
+class PlateAttributes(BaseModel):
+    plate: PlateMeta
+
+
+class PlateGroup(GroupSpec[PlateAttributes, Union[GroupSpec, ArraySpec]]):
+    ...

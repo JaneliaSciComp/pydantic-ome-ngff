@@ -1,4 +1,4 @@
-from typing import List, Literal, Union
+from typing import Literal, Sequence, Union
 from pydantic_ome_ngff.base import StrictBase
 
 
@@ -33,8 +33,8 @@ class VectorTranslationTransform(StrictBase):
     """
 
     type: Literal["translation"] = "translation"
-    translation: List[
-        float
+    translation: Sequence[
+        Union[float, int]
     ]  # SPEC: redundant field name -- we already know it's translation
 
 
@@ -45,7 +45,9 @@ class VectorScaleTransform(StrictBase):
     """
 
     type: Literal["scale"] = "scale"
-    scale: List[float]  # SPEC: redundant field name -- we already know it's scale
+    scale: Sequence[
+        Union[float, int]
+    ]  # SPEC: redundant field name -- we already know it's scale
 
 
 def get_transform_ndim(

@@ -2,8 +2,8 @@ from pydantic_ome_ngff.base import StrictVersionedBase
 from pydantic_ome_ngff.v04.base import version
 import warnings
 from enum import Enum
-from typing import Any, Dict, Optional
-from pydantic import validator
+from typing import Any, Optional
+from pydantic import model_validator
 
 
 class AxisType(str, Enum):
@@ -79,53 +79,44 @@ class Axis(StrictVersionedBase):
     type: Optional[str]
     unit: Optional[str]
 
-    @validator("unit")
-    def check_unit(cls, unit: str, values: Dict[str, AxisType]) -> str:
-        type = values["type"]
-        if type == AxisType.space:
+    @model_validator(mode="after")
+    def check_units(self) -> "Axis":
+        typ = self.type
+        unit = self.unit
+        if typ == AxisType.space:
             if unit not in SpaceUnit.__members__:
-                warnings.warn(
-                    f"""
-                Unit "{unit}" is not recognized as a standard unit for an axis with 
-                type "{type}".
-                """,
-                    UserWarning,
+                msg = (
+                    f"Unit '{unit}' is not recognized as a standard unit "
+                    f"for an axis with type '{typ}'."
                 )
-        elif type == AxisType.time:
+                warnings.warn(msg)
+        elif typ == AxisType.time:
             if unit not in TimeUnit.__members__:
-                warnings.warn(
-                    f"""
-                Unit "{unit}" is not recognized as a standard unit for an axis with 
-                type "{type}".
-                """,
-                    UserWarning,
+                msg = (
+                    f"Unit '{unit}' is not recognized as a standard unit for an axis "
+                    f"with type '{typ}'."
                 )
-        elif type == AxisType.channel:
+                warnings.warn(msg)
+        elif typ == AxisType.channel:
             pass
-        elif type is None:
-            warnings.warn(
-                f"""
-             Null axis type. Version {cls._version} of the OME-NGFF spec states that 
-             the "type" field of an axis should be set to a string.
-            """,
-                UserWarning,
+        elif typ is None:
+            msg = (
+                f"Null axis type. Version {self._version} of the OME-NGFF spec states "
+                "that the 'type' field of an axis should be set to a string."
             )
+            warnings.warn(msg, UserWarning)
         else:
-            warnings.warn(
-                f"""
-            Unknown axis type "{type}". Version {cls._version} of the OME-NGFF spec 
-            states that the "type" field of an axis should be one of 
-            {AxisType._member_names_}.
-            """,
-                UserWarning,
+            msg = (
+                f"Unknown axis type '{typ}'. Version {self._version} of the OME-NGFF "
+                " spec states that the 'type' field of an axis should be one of "
+                f"{AxisType._member_names_}."
             )
+            warnings.warn(msg)
 
         if unit is None:
-            warnings.warn(
-                f"""
-            Null unit. Version {cls._version} of the OME-NGFF spec states
-            that the `unit` field of an axis should be set to a string.
-            """,
-                UserWarning,
+            msg = (
+                f"Null unit. Version {self._version} of the OME-NGFF spec states "
+                "that the `unit` field of an axis should be set to a string."
             )
-        return unit
+            warnings.warn(msg)
+        return self
