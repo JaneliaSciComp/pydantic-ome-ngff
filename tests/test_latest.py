@@ -19,7 +19,7 @@ from .conftest import fetch_schemas
 
 
 @pytest.fixture
-def default_multiscale():
+def default_multiscale() -> Multiscale:
     axes = [
         Axis(name="c", type="channel", unit=None),
         Axis(name="z", type="space", unit="meter"),
@@ -65,12 +65,12 @@ def default_multiscale():
     return multi
 
 
-def test_multiscale(default_multiscale):
+def test_multiscale(default_multiscale: Multiscale) -> None:
     base_schema, strict_schema = fetch_schemas("latest", schema_name="image")
     jsc.validate({"multiscales": [default_multiscale.dict()]}, strict_schema)
 
 
-def test_multiscale_unique_axis_names():
+def test_multiscale_unique_axis_names() -> None:
 
     axes = [
         Axis(name="y", type="space", unit="meter"),
@@ -131,7 +131,7 @@ def test_multiscale_unique_axis_names():
         ("time", "time"),
     ),
 )
-def test_multiscale_semantic_axis_order(axis_types: List[Optional[str]]):
+def test_multiscale_semantic_axis_order(axis_types: List[Optional[str]]) -> None:
     units_map = {"space": "meter", "time": "second"}
     axes = [
         Axis(name=str(idx), type=t, unit=units_map.get(t, None))
@@ -213,7 +213,7 @@ def test_multiscale_axis_length(num_axes: int) -> None:
         )
 
 
-def test_coordinate_transforms_invalid_ndims():
+def test_coordinate_transforms_invalid_ndims() -> None:
     tforms = [
         VectorScaleTransform(scale=(1, 1)),
         VectorTranslationTransform(translation=(1, 1, 1)),

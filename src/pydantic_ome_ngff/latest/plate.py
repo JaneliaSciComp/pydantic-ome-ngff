@@ -2,10 +2,10 @@ from typing import Optional
 
 
 from pydantic_ome_ngff.latest.base import version
-from pydantic_ome_ngff.v04.plate import Plate as PlateV04
+from pydantic_ome_ngff.v04.plate import PlateMeta as PlateMetaV04
 
 
-class Plate(PlateV04):
+class PlateMeta(PlateMetaV04):
     """
     Plate metadata.
     See https://ngff.openmicroscopy.org/latest/#plate-md
