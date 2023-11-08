@@ -1,8 +1,8 @@
 from __future__ import annotations
 import warnings
 from typing import List, Optional, Tuple
-import textwrap
-from pydantic import BaseModel, Field, validator
+
+from pydantic import BaseModel, Field, field_validator
 from pydantic_ome_ngff.base import VersionedBase
 from pydantic_ome_ngff.utils import duplicates
 from pydantic_ome_ngff.v04.base import version
@@ -37,7 +37,7 @@ class ImageLabel(VersionedBase):
     properties: Optional[List[Properties]]
     source: Optional[Source]
 
-    @validator("version")
+    @field_validator("version")
     def check_version(cls, ver: str) -> str:
         if ver is None:
             msg = f"""
@@ -48,7 +48,7 @@ class ImageLabel(VersionedBase):
             warnings.warn(textwrap.fill(msg))
         return ver
 
-    @validator("colors")
+    @field_validator("colors")
     def check_colors(cls, colors: Optional[List[Color]]) -> Optional[List[Color]]:
         if colors is None:
             msg = f"""

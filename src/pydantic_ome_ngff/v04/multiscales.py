@@ -4,8 +4,8 @@ import textwrap
 import warnings
 from typing import Any, Dict, List, Optional, Union, cast
 
-from pydantic import BaseModel, conlist, root_validator, validator
-from pydantic_zarr import GroupSpec, ArraySpec
+from pydantic import BaseModel, conlist, model_validator, field_validator
+from pydantic_zarr.v2 import GroupSpec, ArraySpec
 from pydantic_ome_ngff.utils import duplicates
 from pydantic_ome_ngff.base import StrictBase, StrictVersionedBase
 from pydantic_ome_ngff.v04.base import version
@@ -16,10 +16,10 @@ import pydantic_ome_ngff.v04.coordinateTransformations as ctx
 class MultiscaleDataset(BaseModel):
     path: str
     coordinateTransformations: conlist(
-        Union[ctx.ScaleTransform, ctx.TranslationTransform], min_items=1, max_items=2
+        Union[ctx.ScaleTransform, ctx.TranslationTransform], min_length=1, max_length=2
     )
 
-    @validator("coordinateTransformations")
+    @field_validator("coordinateTransformations")
     def check_transforms_dimensionality(
         cls,
         transforms: List[
@@ -36,10 +36,10 @@ class MultiscaleDataset(BaseModel):
                 "Elements of coordinateTransformations must have the same "
                 f"dimensionality. Got elements with dimensionality = {ndims}."
             )
-            raise ValueError(textwrap.fill(msg))
+            raise ValueError(msg)
         return transforms
 
-    @validator("coordinateTransformations")
+    @field_validator("coordinateTransformations")
     def check_transforms_types(
         cls,
         transforms: List[
@@ -51,15 +51,14 @@ class MultiscaleDataset(BaseModel):
                 "The first element of coordinateTransformations must be a scale "
                 f"transform. Got {tform} instead."
             )
-            raise ValueError(textwrap.fill(msg))
+            raise ValueError(msg)
         if len(transforms) == 2:
             if (tform := transforms[1].type) != "translation":
                 msg = (
                     "The second element of coordinateTransformations must be a "
-                    f"translation transform. Got {tform} instead."
+                    f"translation transform. got {tform} instead."
                 )
-                raise ValueError(textwrap.fill(msg))
-
+                raise ValueError(msg)
         return transforms
 
 
@@ -76,34 +75,34 @@ class Multiscale(VersionedBase):
     version: Optional[Any] = version
     # SPEC: why is this nullable instead of reserving the empty string
     # SPEC: untyped!
-    name: Optional[Any]
+    name: Optional[Any] = None
     # SPEC: not clear what this field is for, given the existence of .metadata
     # SPEC: untyped!
-    type: Optional[Any]
+    type: Any = None
     # SPEC: should default to empty dict instead of None
     metadata: Optional[Dict[str, Any]] = None
     datasets: List[MultiscaleDataset]
     # SPEC: should not exist at top level and instead
     # live in dataset metadata or in .datasets
-    axes: conlist(Axis, min_items=2, max_items=5)
+    axes: conlist(Axis, min_length=2, max_length=5)
     # SPEC: should not live here, and if it is here,
     # it should default to an empty list instead of being nullable
     coordinateTransformations: Optional[
         List[Union[ctx.ScaleTransform, ctx.TranslationTransform]]
-    ]
+    ] = None
 
-    @validator("name")
+    @field_validator("name")
     def check_name(cls, name: str) -> str:
         if name is None:
             msg = (
-                f"The name field was set to `None`. Version {cls._version} of the "
-                "OME-NGFF spec states that the `name` field of a Multiscales object "
-                "should not be None."
+                f"The name field was set to None. Version {cls._version} "
+                "of the OME-NGFF spec states that the `name` field of a Multiscales "
+                "object should not be None."
             )
-            warnings.warn(textwrap.fill(msg))
+            warnings.warn(msg)
         return name
 
-    @validator("axes")
+    @field_validator("axes")
     def check_axes(cls, axes: List[Axis]) -> List[Axis]:
         name_dupes = duplicates(a.name for a in axes)
         if len(name_dupes) > 0:
@@ -156,36 +155,35 @@ class MultiscaleAttrs(BaseModel):
     See https://ngff.openmicroscopy.org/0.4/#multiscale-md
     """
 
-    multiscales: List[Multiscale]
+    multiscales: conlist(Multiscale, min_length=1)
 
 
-class MultiscaleGroup(GroupSpec[MultiscaleAttrs, Any]):
-    @root_validator
-    def check_arrays_exist(cls, values: Dict[str, Any]) -> Dict[str, Any]:
-        attrs = values["attrs"]
-        array_items: dict[str, ArraySpec] = {
-            k: v for k, v in values["items"].items() if hasattr(v, "shape")
+class MultiscaleGroup(GroupSpec[MultiscaleAttrs, Union[ArraySpec, GroupSpec]]):
+    @model_validator(mode="after")
+    def check_arrays_exist(self) -> "MultiscaleGroup":
+
+        attrs = self.attributes
+        array_items: dict[str, dict[str, Any]] = {
+            k: v for k, v in self.members.items() if isinstance(v, ArraySpec)
         }
         multiscales: List[Multiscale] = attrs.multiscales
 
         for multiscale in multiscales:
             for dataset in multiscale.datasets:
                 if (dpath := dataset.path) not in array_items:
-                    raise ValueError(
-                        f"""
-                    Dataset {dpath} was specified in multiscale metadata, but no 
-                    array with that name was found in the items of that group. All 
-                    arrays in multiscale metadata must be items of the group.
-                    """
+                    msg = (
+                        f"Dataset {dpath} was specified in multiscale metadata, but no "
+                        "array with that name was found in the items of that group. "
+                        "All arrays in multiscale metadata must be items of the group."
                     )
-                    raise ValueError(textwrap.fill(msg))
-        return values
+                    raise ValueError(msg)
+        return self
 
-    @root_validator
-    def check_array_ndim(cls, values: Dict[str, Any]) -> Dict[str, Any]:
-        attrs = values["attrs"]
+    @model_validator(mode="after")
+    def check_array_ndim(self) -> "MultiscaleGroup":
+        attrs = self.attributes
         array_items: dict[str, ArraySpec] = {
-            k: v for k, v in values["items"].items() if hasattr(v, "shape")
+            k: v for k, v in self.members.items() if isinstance(v, ArraySpec)
         }
         multiscales: List[Multiscale] = attrs.multiscales
 
@@ -195,7 +193,7 @@ class MultiscaleGroup(GroupSpec[MultiscaleAttrs, Any]):
                 "All arrays must have the same dimensionality. "
                 f"Got arrays with dimensionality {ndims}."
             )
-            raise ValueError(textwrap.fill(msg))
+            raise ValueError(msg)
 
         # check that each transform has compatible rank
         for multiscale in multiscales:
@@ -212,10 +210,10 @@ class MultiscaleGroup(GroupSpec[MultiscaleAttrs, Any]):
                     )
                     if (tform_dims := ctx.get_transform_ndim(tform)) not in set(ndims):
                         msg = (
-                            f"Transform {tform} has dimensionality {tform_dims} which "
-                            "does not match the dimensionality of the arrays in this "
-                            "group ({ndims}). Transform dimensionality must match "
-                            "array dimensionality."
+                            f"Transform {tform} has dimensionality {tform_dims} "
+                            "which does notmatch the dimensionality of the arrays "
+                            f"in this group ({ndims}). Transform dimensionality "
+                            "must match array dimensionality."
                         )
-                        raise ValueError(textwrap.fill(msg))
-        return values
+                        raise ValueError(msg)
+        return self
