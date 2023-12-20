@@ -1,6 +1,4 @@
-from __future__ import annotations
-from typing import Optional
-from pydantic_ome_ngff.v04.imageLabel import ImageLabel as ImageLabelV04
+from pydantic_ome_ngff.v04.label import ImageLabel as ImageLabelV04
 from pydantic_ome_ngff.latest.base import version
 
 

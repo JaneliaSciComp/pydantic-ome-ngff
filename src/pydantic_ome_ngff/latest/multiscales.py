@@ -6,10 +6,10 @@ import warnings
 from pydantic import BaseModel, conlist, model_validator, field_validator
 from pydantic_ome_ngff.base import StrictBase, StrictVersionedBase
 from pydantic_ome_ngff.latest.base import version
-from pydantic_ome_ngff.latest import coordinateTransformations as ctx
+from pydantic_ome_ngff.latest import transforms as ctx
 from pydantic_ome_ngff.utils import duplicates
-from pydantic_ome_ngff.v04.axes import AxisType
-from pydantic_ome_ngff.latest.axes import Axis
+from pydantic_ome_ngff.v04.axis import AxisType
+from pydantic_ome_ngff.latest.axis import Axis
 from pydantic_zarr.v2 import GroupSpec, ArraySpec
 
 
@@ -199,7 +199,6 @@ class MultiscaleGroup(GroupSpec[MultiscaleAttrs, Any]):
             for dataset in multiscale.datasets:
                 tforms.extend(dataset.coordinateTransformations)
             for tform in tforms:
-
                 if hasattr(tform, "scale") or hasattr(tform, "translation"):
                     tform = cast(
                         Union[ctx.VectorScaleTransform, ctx.VectorTranslationTransform],
