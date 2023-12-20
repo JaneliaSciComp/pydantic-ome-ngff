@@ -1,29 +1,36 @@
 from typing import Union
-import pydantic_ome_ngff.v04.coordinateTransformations as ctx
+import pydantic_ome_ngff.v04.transforms as ctx
 
 
-class IdentityTransform(ctx.IdentityTransform):
+class IdentityTransform(ctx.Identity):
     """
     An identity transform with no parameters.
     See https://ngff.openmicroscopy.org/latest/#trafo-md
     """
 
 
-class PathTransform(ctx.PathTransform):
+class PathScale(ctx.PathScale):
     """ "
     A coordinateTransform with at "path" field.
     See https://ngff.openmicroscopy.org/latest/#trafo-md
     """
 
 
-class VectorTranslationTransform(ctx.VectorTranslationTransform):
+class PathTranslation(ctx.PathTranslation):
+    """ "
+    A coordinateTransform with at "path" field.
+    See https://ngff.openmicroscopy.org/latest/#trafo-md
+    """
+
+
+class VectorTranslationTransform(ctx.VectorTranslation):
     """
     A translation transform with a `translate` field that is a vector.
     See https://ngff.openmicroscopy.org/latest/#trafo-md
     """
 
 
-class VectorScaleTransform(ctx.VectorScaleTransform):
+class VectorScaleTransform(ctx.VectorScale):
     """
     A scale transform with a `scale` field that is a vector.
     See https://ngff.openmicroscopy.org/latest/#trafo-md
@@ -31,7 +38,7 @@ class VectorScaleTransform(ctx.VectorScaleTransform):
 
 
 def get_transform_ndim(
-    transform: Union[VectorScaleTransform, VectorTranslationTransform]
+    transform: Union[VectorScaleTransform, VectorTranslationTransform],
 ) -> int:
     """
     Get the dimensionality of a vector transform (scale or translation).
@@ -49,6 +56,6 @@ def get_transform_ndim(
         )
 
 
-ScaleTransform = Union[VectorScaleTransform, PathTransform]
-TranslationTransform = Union[VectorTranslationTransform, PathTransform]
+ScaleTransform = Union[VectorScaleTransform, PathScale]
+TranslationTransform = Union[VectorTranslationTransform, PathTranslation]
 CoordinateTransform = Union[ScaleTransform, TranslationTransform, IdentityTransform]

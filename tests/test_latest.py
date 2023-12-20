@@ -9,12 +9,12 @@ from pydantic_ome_ngff.latest.multiscales import (
     MultiscaleDataset,
     MultiscaleGroup,
 )
-from pydantic_ome_ngff.latest.coordinateTransformations import (
+from pydantic_ome_ngff.latest.transforms import (
     CoordinateTransform,
     VectorScaleTransform,
     VectorTranslationTransform,
 )
-from pydantic_ome_ngff.latest.axes import Axis
+from pydantic_ome_ngff.latest.axis import Axis
 from .conftest import fetch_schemas
 
 
@@ -71,7 +71,6 @@ def test_multiscale(default_multiscale: Multiscale) -> None:
 
 
 def test_multiscale_unique_axis_names() -> None:
-
     axes = [
         Axis(name="y", type="space", unit="meter"),
         Axis(name="x", type="space", unit="meter"),
@@ -244,7 +243,7 @@ def test_coordinate_transforms_invalid_ndims() -> None:
     ),
 )
 def test_coordinate_transforms_invalid_length(
-    transforms: Tuple[CoordinateTransform, CoordinateTransform]
+    transforms: Tuple[CoordinateTransform, CoordinateTransform],
 ) -> None:
     with pytest.raises(ValidationError, match="List should have at most 2 items"):
         MultiscaleDataset(path="foo", coordinateTransformations=transforms)
@@ -268,7 +267,7 @@ def test_coordinate_transforms_invalid_length(
     ),
 )
 def test_coordinate_transforms_invalid_elements(
-    transforms: Tuple[CoordinateTransform, CoordinateTransform]
+    transforms: Tuple[CoordinateTransform, CoordinateTransform],
 ) -> None:
     with pytest.raises(
         ValidationError, match="element of coordinateTransformations must be a"
@@ -291,8 +290,7 @@ def test_multiscale_group_datasets_exist(default_multiscale: Multiscale) -> None
         match="array with that name was found in the items of that group.",
     ):
         bad_items = {
-            d.path
-            + "x": ArraySpec(
+            d.path + "x": ArraySpec(
                 shape=(1, 1, 1, 1), dtype="uint8", chunks=(1, 1, 1, 1), attributes={}
             )
             for d in default_multiscale.datasets

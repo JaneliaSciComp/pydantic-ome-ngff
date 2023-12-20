@@ -1,10 +1,12 @@
 from typing import List, Optional
 
-from pydantic import BaseModel, PositiveInt
+from pydantic import BaseModel, PositiveInt, ValidationError, field_validator
 from pydantic_ome_ngff.base import VersionedBase
 from pydantic_ome_ngff.v04.base import version
 from pydantic_zarr.v2 import GroupSpec, ArraySpec
 from typing import Union
+
+from pydantic_ome_ngff.v04.well import WellGroup
 
 
 class Acquisition(BaseModel):
@@ -30,8 +32,7 @@ class PlateMeta(VersionedBase):
     see https://ngff.openmicroscopy.org/0.4/#plate-md
     """
 
-    # we need to put the version here as a private class attribute because the version
-    # is not required by the spec...
+    # the version here as a private class attribute because the version is not required by the spec
     _version = version
     version: Optional[str] = version
     name: Optional[str] = None
@@ -46,5 +47,15 @@ class PlateAttributes(BaseModel):
     plate: PlateMeta
 
 
-class PlateGroup(GroupSpec[PlateAttributes, Union[GroupSpec, ArraySpec]]):
-    ...
+class PlateGroup(GroupSpec[PlateAttributes, Union[WellGroup, GroupSpec, ArraySpec]]):
+    @field_validator("members", mode="after")
+    @classmethod
+    def contains_well(
+        cls, members: Union[WellGroup, GroupSpec, ArraySpec]
+    ) -> Union[WellGroup, GroupSpec, ArraySpec]:
+        """
+        Check that .members contains a WellGroup
+        """
+        if not any(map(lambda v: isinstance(v, WellGroup), members.values())):
+            raise ValidationError
+        return members

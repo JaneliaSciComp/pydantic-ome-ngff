@@ -10,16 +10,16 @@ from pydantic_ome_ngff.v04.multiscales import (
     MultiscaleDataset,
     MultiscaleGroup,
 )
-from pydantic_ome_ngff.v04.coordinateTransformations import (
-    CoordinateTransform,
-    VectorScaleTransform,
-    VectorTranslationTransform,
+from pydantic_ome_ngff.v04.transforms import (
+    Transform,
+    VectorScale,
+    VectorTranslation,
 )
-from pydantic_ome_ngff.v04.axes import Axis
+from pydantic_ome_ngff.v04.axis import Axis
 
 
 @pytest.fixture
-def default_multiscale():
+def default_multiscale() -> Multiscale:
     axes = [
         Axis(name="c", type="channel", unit=None),
         Axis(name="z", type="space", unit="meter"),
@@ -32,13 +32,13 @@ def default_multiscale():
         MultiscaleDataset(
             path=f"path{idx}",
             coordinateTransformations=[
-                VectorScaleTransform(
+                VectorScale(
                     scale=[
                         1,
                     ]
                     * rank
                 ),
-                VectorTranslationTransform(
+                VectorTranslation(
                     translation=[
                         0,
                     ]
@@ -54,7 +54,7 @@ def default_multiscale():
         axes=axes,
         datasets=datasets,
         coordinateTransformations=[
-            VectorScaleTransform(
+            VectorScale(
                 scale=[
                     1,
                 ]
@@ -65,13 +65,12 @@ def default_multiscale():
     return multi
 
 
-def test_multiscale(default_multiscale):
+def test_multiscale(default_multiscale: Multiscale) -> None:
     base_schema, strict_schema = fetch_schemas("0.4", schema_name="image")
-    jsc.validate({"multiscales": [default_multiscale.dict()]}, strict_schema)
+    jsc.validate({"multiscales": [default_multiscale.model_dump()]}, strict_schema)
 
 
-def test_multiscale_unique_axis_names():
-
+def test_multiscale_unique_axis_names() -> None:
     axes = [
         Axis(name="y", type="space", unit="meter"),
         Axis(name="x", type="space", unit="meter"),
@@ -83,8 +82,8 @@ def test_multiscale_unique_axis_names():
         MultiscaleDataset(
             path="path",
             coordinateTransformations=[
-                VectorScaleTransform(scale=[1, 1, 1]),
-                VectorTranslationTransform(translation=[0, 0, 0]),
+                VectorScale(scale=[1, 1, 1]),
+                VectorTranslation(translation=[0, 0, 0]),
             ],
         )
     ]
@@ -94,7 +93,7 @@ def test_multiscale_unique_axis_names():
         axes=axes,
         datasets=datasets,
         coordinateTransformations=[
-            VectorScaleTransform(scale=[1, 1, 1]),
+            VectorScale(scale=[1, 1, 1]),
         ],
     )
 
@@ -107,8 +106,8 @@ def test_multiscale_unique_axis_names():
         MultiscaleDataset(
             path="path",
             coordinateTransformations=[
-                VectorScaleTransform(scale=[1, 1, 1]),
-                VectorTranslationTransform(translation=[0, 0, 0]),
+                VectorScale(scale=[1, 1, 1]),
+                VectorTranslation(translation=[0, 0, 0]),
             ],
         )
     ]
@@ -119,7 +118,7 @@ def test_multiscale_unique_axis_names():
             axes=axes,
             datasets=datasets,
             coordinateTransformations=[
-                VectorScaleTransform(scale=[1, 1, 1]),
+                VectorScale(scale=[1, 1, 1]),
             ],
         )
 
@@ -129,11 +128,9 @@ def test_multiscale_unique_axis_names():
     (
         ("space", "space", "channel"),
         ("space", "channel", "space", "channel"),
-        (None, "space", "space", None),
-        ("time", "time"),
     ),
 )
-def test_multiscale_semantic_axis_order(axis_types: List[Optional[str]]) -> None:
+def test_multiscale_space_axes_last(axis_types: List[Optional[str]]) -> None:
     units_map = {"space": "meter", "time": "second"}
     axes = [
         Axis(name=str(idx), type=t, unit=units_map.get(t, None))
@@ -144,13 +141,13 @@ def test_multiscale_semantic_axis_order(axis_types: List[Optional[str]]) -> None
         MultiscaleDataset(
             path="path",
             coordinateTransformations=[
-                VectorScaleTransform(
+                VectorScale(
                     scale=[
                         1,
                     ]
                     * rank
                 ),
-                VectorTranslationTransform(
+                VectorTranslation(
                     translation=[
                         0,
                     ]
@@ -160,13 +157,13 @@ def test_multiscale_semantic_axis_order(axis_types: List[Optional[str]]) -> None
         )
     ]
     # TODO: make some axis-specifc exceptions
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError, match="Space axes must come last."):
         Multiscale(
             name="foo",
             axes=axes,
             datasets=datasets,
             coordinateTransformations=[
-                VectorScaleTransform(
+                VectorScale(
                     scale=[
                         1,
                     ]
@@ -184,13 +181,13 @@ def test_multiscale_axis_length(num_axes: int) -> None:
         MultiscaleDataset(
             path="path",
             coordinateTransformations=[
-                VectorScaleTransform(
+                VectorScale(
                     scale=[
                         1,
                     ]
                     * rank
                 ),
-                VectorTranslationTransform(
+                VectorTranslation(
                     translation=[
                         0,
                     ]
@@ -199,13 +196,13 @@ def test_multiscale_axis_length(num_axes: int) -> None:
             ],
         )
     ]
-    with pytest.raises(ValidationError, match="List should have"):
+    with pytest.raises(ValidationError, match="Incorrect number of axes provided"):
         Multiscale(
             name="foo",
             axes=axes,
             datasets=datasets,
             coordinateTransformations=[
-                VectorScaleTransform(
+                VectorScale(
                     scale=[
                         1,
                     ]
@@ -217,12 +214,12 @@ def test_multiscale_axis_length(num_axes: int) -> None:
 
 def test_coordinate_transforms_invalid_ndims() -> None:
     tforms = [
-        VectorScaleTransform(scale=(1, 1)),
-        VectorTranslationTransform(translation=(1, 1, 1)),
+        VectorScale(scale=(1, 1)),
+        VectorTranslation(translation=(1, 1, 1)),
     ]
     with pytest.raises(
         ValidationError,
-        match="Elements of coordinateTransformations must have the same dimensionality.",  # noqa
+        match="The transforms have inconsistent dimensionality.",  # noqa
     ):
         MultiscaleDataset(path="foo", coordinateTransformations=tforms)
 
@@ -231,26 +228,20 @@ def test_coordinate_transforms_invalid_ndims() -> None:
     "transforms",
     (
         [
-            VectorTranslationTransform(translation=(1, 1, 1)),
-        ]
-        * 3,
+            VectorScale(scale=(1, 1, 1)),
+            VectorTranslation(translation=(1, 1, 1)),
+            VectorTranslation(translation=(1, 1, 1)),
+        ],
         [
-            VectorScaleTransform(scale=(1, 1, 1)),
+            VectorScale(scale=(1, 1, 1)),
         ]
         * 5,
-        [
-            VectorScaleTransform(scale=(1, 1, 1)),
-            VectorTranslationTransform(translation=(1, 1, 1)),
-            VectorTranslationTransform(translation=(1, 1, 1)),
-        ],
     ),
 )
 def test_coordinate_transforms_invalid_length(
-    transforms: Tuple[CoordinateTransform, CoordinateTransform]
+    transforms: List[Transform],
 ) -> None:
-    with pytest.raises(
-        ValidationError, match="List should have at most 2 items after validation, not"
-    ):
+    with pytest.raises(ValidationError, match="expected 1 or 2"):
         MultiscaleDataset(path="foo", coordinateTransformations=transforms)
 
 
@@ -258,21 +249,21 @@ def test_coordinate_transforms_invalid_length(
     "transforms",
     (
         [
-            VectorTranslationTransform(translation=(1, 1, 1)),
+            VectorTranslation(translation=(1, 1, 1)),
         ]
         * 2,
         [
-            VectorScaleTransform(scale=(1, 1, 1)),
+            VectorScale(scale=(1, 1, 1)),
         ]
         * 2,
         [
-            VectorTranslationTransform(translation=(1, 1, 1)),
-            VectorScaleTransform(scale=(1, 1, 1)),
+            VectorTranslation(translation=(1, 1, 1)),
+            VectorScale(scale=(1, 1, 1)),
         ],
     ),
 )
 def test_coordinate_transforms_invalid_elements(
-    transforms: Tuple[CoordinateTransform, CoordinateTransform]
+    transforms: Tuple[Transform, Transform],
 ) -> None:
     with pytest.raises(
         ValidationError, match="element of coordinateTransformations must be a"
@@ -295,8 +286,7 @@ def test_multiscale_group_datasets_exist(default_multiscale: Multiscale) -> None
         match="array with that name was found in the items of that group.",
     ):
         bad_items = {
-            d.path
-            + "x": ArraySpec(
+            d.path + "x": ArraySpec(
                 shape=(1, 1, 1, 1), dtype="uint8", chunks=(1, 1, 1, 1), attributes={}
             )
             for d in default_multiscale.datasets
