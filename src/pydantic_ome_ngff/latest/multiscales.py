@@ -1,15 +1,7 @@
-from collections import Counter
-from typing import Any, Dict, List, Literal, Optional, Union, cast
-import warnings
+from typing import Literal
 
-from pydantic import BaseModel, model_validator, field_validator
-from pydantic_ome_ngff.base import StrictBase, StrictVersionedBase
 from pydantic_ome_ngff.latest.base import version
-from pydantic_ome_ngff.latest import transforms as ctx
-from pydantic_ome_ngff.utils import duplicates
-from pydantic_ome_ngff.latest.axis import AxisType, Axis
 import pydantic_ome_ngff.v04.multiscales as msv04
-from pydantic_zarr.v2 import GroupSpec, ArraySpec
 
 
 class MultiscaleDataset(msv04.MultiscaleDataset):
@@ -27,15 +19,19 @@ class MultiscaleDataset(msv04.MultiscaleDataset):
     coordinateTransformations: ctx.ScaleTransform | ctx.TranslationTransform
         The coordinate transformations for this image.
     """
+
     ...
+
 
 class Multiscale(msv04.Multiscale):
     """
     Multiscale image metadata.
     See https://ngff.openmicroscopy.org/latest/#multiscale-md
     """
+
     _version = version
-    version: Literal['0.5-dev'] = version
+    version: Literal["0.5-dev"] = version
+
 
 class MultiscaleAttrs(msv04.MultiscaleAttrs):
     """
@@ -43,8 +39,9 @@ class MultiscaleAttrs(msv04.MultiscaleAttrs):
     See https://ngff.openmicroscopy.org/latest/#multiscale-md
     """
 
+
 class MultiscaleGroup(msv04.MultiscaleGroup):
-     """
+    """
     A model of a Zarr group that implements OME-NGFF Multiscales metadata, version 0.5-dev.
 
     Attributes

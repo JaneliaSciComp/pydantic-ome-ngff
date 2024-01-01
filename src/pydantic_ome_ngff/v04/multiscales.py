@@ -23,7 +23,9 @@ def ensure_scale_translation(
     """
 
     if len(transforms) == 0 or len(transforms) > 2:
-        raise ValueError(f"Invalid number of transforms: got {len(transforms)}, expected 1 or 2")
+        raise ValueError(
+            f"Invalid number of transforms: got {len(transforms)}, expected 1 or 2"
+        )
 
     maybe_scale = transforms[0]
     if maybe_scale.type != "scale":
@@ -153,6 +155,7 @@ class Multiscale(StrictVersionedBase):
     coordinateTransformations: List[tx.Scale, tx.Translation]
 
     """
+
     _version = version
     version: Any = version
     name: Any = None
@@ -192,12 +195,13 @@ class MultiscaleGroup(GroupSpec[MultiscaleAttrs, ArraySpec | GroupSpec]):
         The members of this Zarr group. Should be instances of `pydantic_zarr.GroupSpec` or `pydantic_zarr.ArraySpec`.
 
     """
+
     @model_validator(mode="after")
     def check_arrays_exist(self) -> "MultiscaleGroup":
         """
         Check that the arrays referenced in the `multiscales` metadata are actually contained in this group.
 
-        Note that this is currently too strict, since it will not check for arrays in subgroups, but this is 
+        Note that this is currently too strict, since it will not check for arrays in subgroups, but this is
         allowed by the spec. I will implement tree-flattening over in pydantic-zarr to fix this.
         """
         attrs = self.attributes

@@ -1,6 +1,7 @@
 from typing import Union
 import pydantic_ome_ngff.v04.transforms as tx
 
+
 class Identity(tx.Identity):
     """
     An identity transform with no parameters.
@@ -34,6 +35,7 @@ class VectorScale(tx.VectorScale):
     A scale transform with a `scale` field that is a vector.
     See https://ngff.openmicroscopy.org/latest/#trafo-md
     """
+
 
 Scale = Union[VectorScale, PathScale]
 Translation = Union[VectorTranslation, PathTranslation]
