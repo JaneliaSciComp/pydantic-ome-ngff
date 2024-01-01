@@ -1,63 +1,46 @@
 from __future__ import annotations
 import textwrap
 from typing import Union
-import pydantic_ome_ngff.v04.transforms as ctx
+import pydantic_ome_ngff.v04.transforms as tx
 
-
-class IdentityTransform(ctx.Identity):
+class Identity(tx.Identity):
     """
     An identity transform with no parameters.
     See https://ngff.openmicroscopy.org/latest/#trafo-md
     """
 
 
-class PathScale(ctx.PathScale):
+class PathScale(tx.PathScale):
     """ "
     A coordinateTransform with at "path" field.
     See https://ngff.openmicroscopy.org/latest/#trafo-md
     """
 
 
-class PathTranslation(ctx.PathTranslation):
+class PathTranslation(tx.PathTranslation):
     """ "
     A coordinateTransform with at "path" field.
     See https://ngff.openmicroscopy.org/latest/#trafo-md
     """
 
 
-class VectorTranslationTransform(ctx.VectorTranslation):
+class VectorTranslation(tx.VectorTranslation):
     """
     A translation transform with a `translate` field that is a vector.
     See https://ngff.openmicroscopy.org/latest/#trafo-md
     """
 
 
-class VectorScaleTransform(ctx.VectorScale):
+class VectorScale(tx.VectorScale):
     """
     A scale transform with a `scale` field that is a vector.
     See https://ngff.openmicroscopy.org/latest/#trafo-md
     """
 
+Scale = Union[VectorScale, PathScale]
+Translation = Union[VectorTranslation, PathTranslation]
+Transform = Union[Scale, Translation, Identity]
 
-def get_transform_ndim(
-    transform: Union[VectorScaleTransform, VectorTranslationTransform],
-) -> int:
-    """
-    Get the dimensionality of a vector transform (scale or translation).
-    """
-    if transform.type == "scale" and hasattr(transform, "scale"):
-        return len(transform.scale)
-    elif transform.type == "translation" and hasattr(transform, "translation"):
-        return len(transform.translation)
-    else:
-        msg = (
-            f"Transform must be either VectorScaleTransform or "
-            f"VectorTranslationTransform. Got {type(transform)} instead."
-        )
-
-        raise ValueError(textwrap.fill(msg))
-
-
-ScaleTransform = Union[VectorScaleTransform, PathScale]
-TranslationTransform = Union[VectorTranslationTransform, PathTranslation]
-CoordinateTransform = Union[ScaleTransform, TranslationTransform, IdentityTransform]
+scale_translation = tx.scale_translation
+ensure_dimensionality = tx.ensure_dimensionality
+ndim = tx.ndim

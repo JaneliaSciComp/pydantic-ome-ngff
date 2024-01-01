@@ -61,14 +61,15 @@ def ndim(
     """
     if hasattr(transform, "scale"):
         return len(transform.scale)
-    elif hasattr(transform, "translation"):
+    
+    if hasattr(transform, "translation"):
         return len(transform.translation)
-    else:
-        msg = (
-            "Transform must be either `VectorScaleTransform` or `VectorTranslationTransform`."
-            f"Got {type(transform)} instead."
-        )
-        raise ValueError(msg)
+
+    msg = (
+        "Transform must be either `VectorScaleTransform` or `VectorTranslationTransform`."
+        f"Got {type(transform)} instead."
+    )
+    raise ValueError(msg)
 
 
 def scale_translation(
@@ -103,6 +104,9 @@ Transform = Scale | Translation
 def ensure_dimensionality(
     transforms: Sequence[VectorScale | VectorTranslation],
 ) -> Sequence[VectorScale | VectorTranslation]:
+    """
+    Ensure that the elements of `Sequence[VectorTransform]`
+    """
     ndims = tuple(ndim(tx) for tx in transforms)
     ndims_set = set(ndims)
     if len(ndims_set) > 1:

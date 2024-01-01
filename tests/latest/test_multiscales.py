@@ -1,24 +1,23 @@
 from __future__ import annotations
-from typing import Optional, Tuple, List, Type
-import jsonschema as jsc
-import pytest
+from typing import List, Optional, Tuple
 from pydantic import ValidationError
+import pytest
+import jsonschema as jsc
 from pydantic_zarr.v2 import ArraySpec
-from .conftest import fetch_schemas
-from pydantic_ome_ngff.v04.multiscales import (
+from pydantic_ome_ngff.latest.multiscales import (
     Multiscale,
     MultiscaleAttrs,
     MultiscaleDataset,
     MultiscaleGroup,
 )
-from pydantic_ome_ngff.v04.transforms import (
+
+from pydantic_ome_ngff.latest.transforms import (
     Transform,
     VectorScale,
     VectorTranslation,
 )
-from pydantic_ome_ngff.v04.axis import Axis
-
-loader = JsonLoader("v04")
+from pydantic_ome_ngff.latest.axis import Axis
+from tests.conftest import fetch_schemas
 
 
 @pytest.fixture
@@ -68,7 +67,7 @@ def default_multiscale() -> Multiscale:
 
 
 def test_multiscale(default_multiscale: Multiscale) -> None:
-    base_schema, strict_schema = fetch_schemas("0.4", schema_name="image")
+    _, strict_schema = fetch_schemas("latest", schema_name="image")
     jsc.validate({"multiscales": [default_multiscale.model_dump()]}, strict_schema)
 
 
@@ -260,20 +259,34 @@ def test_coordinate_transforms_invalid_length(
         ]
         * 2,
         [
-            VectorScale(scale=(1, 1, 1)),
-        ]
-        * 2,
-        [
             VectorTranslation(translation=(1, 1, 1)),
             VectorScale(scale=(1, 1, 1)),
         ],
     ),
 )
-def test_coordinate_transforms_invalid_elements(
+def test_coordinate_transforms_invalid_first_element(
     transforms: Tuple[Transform, Transform],
 ) -> None:
     with pytest.raises(
-        ValidationError, match="element of coordinateTransformations must be a"
+        ValidationError, match="The first element of `coordinateTransformations` must be a"
+    ):
+        MultiscaleDataset(path="foo", coordinateTransformations=transforms)
+
+
+@pytest.mark.parametrize(
+    "transforms",
+    (
+        [
+            VectorScale(scale=(1, 1, 1)),
+            VectorScale(scale=(1, 1, 1)),
+        ],
+    ),
+)
+def test_coordinate_transforms_invalid_second_element(
+    transforms: Tuple[Transform, Transform],
+) -> None:
+    with pytest.raises(
+        ValidationError, match="The second element of `coordinateTransformations` must be a"
     ):
         MultiscaleDataset(path="foo", coordinateTransformations=transforms)
 

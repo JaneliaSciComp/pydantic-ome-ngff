@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Extra
 
 
-class StrictBase(BaseModel):
+class StrictBase(BaseModel, extra='forbid'):
     """
     A pydantic basemodel that refuses extra fields.
     """

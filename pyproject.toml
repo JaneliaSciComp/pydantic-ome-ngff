@@ -8,7 +8,7 @@ readme = "README.md"
 packages = [{include = "pydantic_ome_ngff", from="src"}]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.10"
 pydantic-zarr = "0.5.2"
 fsspec = "^2023.10.0"
 s3fs = "^2023.10.0"
@@ -48,3 +48,31 @@ init_forbid_extra = true
 init_typed = true
 warn_required_dynamic_aliases = true
 warn_untyped_fields = true
+
+
+[tool.coverage.run]
+source = ['src']
+branch = true
+context = '${CONTEXT}'
+
+[tool.coverage.report]
+precision = 2
+exclude_lines = [
+    'pragma: no cover',
+    'raise NotImplementedError',
+    'if TYPE_CHECKING:',
+    'if typing.TYPE_CHECKING:',
+    '@overload',
+    '@typing.overload',
+    '\(Protocol\):$',
+    'typing.assert_never',
+    'assert_never',
+]
+
+[tool.coverage.paths]
+source = [
+    'src/'
+]
+
+[tool.coverage.html]
+directory = "htmlcov"
