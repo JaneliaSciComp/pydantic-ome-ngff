@@ -1,32 +1,34 @@
 from collections import Counter
-from typing import Annotated, Any, Dict, List, Optional, Sequence, Union, cast
+from typing import Annotated, Any, Dict, List, Sequence, Union, cast
 
-from pydantic import AfterValidator, BaseModel, conlist, model_validator
+from pydantic import AfterValidator, BaseModel, Field, model_validator
 from pydantic_zarr.v2 import GroupSpec, ArraySpec
 from pydantic_ome_ngff.utils import duplicates
 from pydantic_ome_ngff.base import StrictBase, StrictVersionedBase
 from pydantic_ome_ngff.v04.base import version
 from pydantic_ome_ngff.v04.axis import Axis, AxisType
-import pydantic_ome_ngff.v04.transforms as ctx
+import pydantic_ome_ngff.v04.transforms as tx
 
 VALID_NDIM = (2, 3, 4, 5)
 
 
 def ensure_scale_translation(
-    transforms: Sequence[Union[ctx.VectorScale, ctx.VectorTranslation]],
-) -> Sequence[Union[ctx.VectorScale, ctx.VectorTranslation]]:
+    transforms: Sequence[Union[tx.VectorScale, tx.VectorTranslation]],
+) -> Sequence[Union[tx.VectorScale, tx.VectorTranslation]]:
     """
     Ensure that
         - the first element is a scale transformation
-        - the second element is a translation transform
+        - the second element, if present, is a translation transform
+        - there are only 1 or 2 transforms
     """
-    if len(transforms) == 0:
-        raise ValueError("Invalid transforms: got 0, expected 1 or 2")
+
+    if len(transforms) == 0 or len(transforms) > 2:
+        raise ValueError(f"Invalid number of transforms: got {len(transforms)}, expected 1 or 2")
 
     maybe_scale = transforms[0]
     if maybe_scale.type != "scale":
         msg = (
-            "The first element of coordinateTransformations must be a scale "
+            "The first element of `coordinateTransformations` must be a scale "
             f"transform. Got {maybe_scale} instead."
         )
         raise ValueError(msg)
@@ -34,19 +36,17 @@ def ensure_scale_translation(
         maybe_trans = transforms[1]
         if (maybe_trans.type) != "translation":
             msg = (
-                "The second element of coordinateTransformations must be a "
+                "The second element of `coordinateTransformations` must be a "
                 f"translation transform. Got {maybe_trans} instead."
             )
             raise ValueError(msg)
-    else:
-        msg = f"Invalid number of transforms: got {len(transforms)}, expected 1 or 2"
-        raise ValueError(msg)
+
     return transforms
 
 
 def ensure_transforms_length(
-    transforms: Sequence[ctx.VectorScale | ctx.VectorTranslation],
-) -> Sequence[ctx.VectorScale | ctx.VectorTranslation]:
+    transforms: Sequence[tx.VectorScale | tx.VectorTranslation],
+) -> Sequence[tx.VectorScale | tx.VectorTranslation]:
     if (num_tx := len(transforms)) not in (1, 2):
         msg = f"Invalid number of transforms: got {num_tx}, expected 1 or 2"
         raise ValueError(msg)
@@ -63,16 +63,16 @@ class MultiscaleDataset(StrictBase):
     path: str
         The path to the zarr array that stores the image described by this metadata.
         This path should be relative to the group that contains this metadata.
-    coordinateTransformations: Union[ctx.ScaleTransform, ctx.TranslationTransform]
+    coordinateTransformations: ctx.ScaleTransform | ctx.TranslationTransform
         The coordinate transformations for this image.
     """
 
     path: str
     coordinateTransformations: Annotated[
-        List[ctx.Scale | ctx.Translation],
+        List[tx.Scale | tx.Translation],
         AfterValidator(ensure_transforms_length),
         AfterValidator(ensure_scale_translation),
-        AfterValidator(ctx.ensure_dimensionality),
+        AfterValidator(tx.ensure_dimensionality),
     ]
 
 
@@ -136,15 +136,28 @@ class Multiscale(StrictVersionedBase):
     """
     Multiscale image metadata.
     See https://ngff.openmicroscopy.org/0.4/#multiscale-md
-    """
 
-    # we need to put the version here as a private class attribute because the version
-    # is not required by the spec...
+    Attributes
+    ----------
+
+    name: Any
+        The name for this multiscale image. Optional. Defaults to `None`.
+    type: Any
+        The type of the multiscale image. Optional. Defaults to `None`.
+    metadata: Dict[str, Any] | None
+        Metadata for this multiscale image. Optional. Defaults to `None`.
+    datasets: List[MultiscaleDataset]
+        A collection of descriptions of arrays that collectively comprise this multiscale image.
+    axes: List[Axis]
+        A list of `Axis` objects that define the semantics for the different axes of the multiscale image.
+    coordinateTransformations: List[tx.Scale, tx.Translation]
+
+    """
     _version = version
     version: Any = version
     name: Any = None
     type: Any = None
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: Dict[str, Any] | None = None
     datasets: List[MultiscaleDataset]
     axes: Annotated[
         List[Axis],
@@ -153,7 +166,7 @@ class Multiscale(StrictVersionedBase):
         AfterValidator(ensure_axis_types),
     ]
 
-    coordinateTransformations: List[ctx.Scale | ctx.Translation] | None = None
+    coordinateTransformations: List[tx.Scale | tx.Translation] | None = None
 
 
 class MultiscaleAttrs(BaseModel):
@@ -162,37 +175,57 @@ class MultiscaleAttrs(BaseModel):
     See https://ngff.openmicroscopy.org/0.4/#multiscale-md
     """
 
-    multiscales: conlist(Multiscale, min_length=1)
+    multiscales: Annotated[List[Multiscale], Field(..., min_length=1)]
 
 
-class MultiscaleGroup(GroupSpec[MultiscaleAttrs, Union[ArraySpec, GroupSpec]]):
+class MultiscaleGroup(GroupSpec[MultiscaleAttrs, ArraySpec | GroupSpec]):
+    """
+    A model of a Zarr group that implements OME-NGFF Multiscales metadata, version 0.4.
+
+    Attributes
+    ----------
+
+    attributes: MultiscaleAttrs
+        The attributes of this Zarr group, which should contain valid `MultiscaleAttrs`. Extra
+        values are allowed.
+    members Dict[Str, ArraySpec | GroupSpec]:
+        The members of this Zarr group. Should be instances of `pydantic_zarr.GroupSpec` or `pydantic_zarr.ArraySpec`.
+
+    """
     @model_validator(mode="after")
     def check_arrays_exist(self) -> "MultiscaleGroup":
+        """
+        Check that the arrays referenced in the `multiscales` metadata are actually contained in this group.
+
+        Note that this is currently too strict, since it will not check for arrays in subgroups, but this is 
+        allowed by the spec. I will implement tree-flattening over in pydantic-zarr to fix this.
+        """
         attrs = self.attributes
         array_items: dict[str, dict[str, ArraySpec]] = {
             k: v for k, v in self.members.items() if isinstance(v, ArraySpec)
         }
 
-        multiscales: List[Multiscale] = attrs.multiscales
-
-        for multiscale in multiscales:
+        for multiscale in attrs.multiscales:
             for dataset in multiscale.datasets:
                 if (dpath := dataset.path) not in array_items:
                     msg = (
                         f"Dataset {dpath} was specified in multiscale metadata, but no "
                         "array with that name was found in the items of that group. "
-                        "All arrays in multiscale metadata must be items of the group."
+                        "All arrays referenced in multiscale metadata must be items of the group."
                     )
                     raise ValueError(msg)
         return self
 
     @model_validator(mode="after")
     def check_array_ndim(self) -> "MultiscaleGroup":
+        """
+        Check that all the arrays referenced by the `multiscales` metadata have the same
+        dimensionality, and that this dimensionality is consistent with the `coordinateTransformations` metadata.
+        """
         attrs = self.attributes
         array_items: dict[str, ArraySpec] = {
             k: v for k, v in self.members.items() if isinstance(v, ArraySpec)
         }
-        multiscales: List[Multiscale] = attrs.multiscales
 
         ndims = tuple(len(a.shape) for a in array_items.values())
         if len(set(ndims)) > 1:
@@ -203,7 +236,7 @@ class MultiscaleGroup(GroupSpec[MultiscaleAttrs, Union[ArraySpec, GroupSpec]]):
             raise ValueError(msg)
 
         # check that each transform has compatible rank
-        for multiscale in multiscales:
+        for multiscale in attrs.multiscales:
             tforms = []
             if multiscale.coordinateTransformations is not None:
                 tforms.extend(multiscale.coordinateTransformations)
@@ -212,13 +245,13 @@ class MultiscaleGroup(GroupSpec[MultiscaleAttrs, Union[ArraySpec, GroupSpec]]):
             for tform in tforms:
                 if hasattr(tform, "scale") or hasattr(tform, "translation"):
                     tform = cast(
-                        Union[ctx.VectorScale, ctx.VectorTranslation],
+                        Union[tx.VectorScale, tx.VectorTranslation],
                         tform,
                     )
-                    if (tform_dims := ctx.ndim(tform)) not in set(ndims):
+                    if (tform_dims := tx.ndim(tform)) not in set(ndims):
                         msg = (
                             f"Transform {tform} has dimensionality {tform_dims} "
-                            "which does notmatch the dimensionality of the arrays "
+                            "which does not match the dimensionality of the arrays "
                             f"in this group ({ndims}). Transform dimensionality "
                             "must match array dimensionality."
                         )
