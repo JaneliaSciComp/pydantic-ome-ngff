@@ -61,7 +61,7 @@ def ndim(
     """
     if hasattr(transform, "scale"):
         return len(transform.scale)
-    
+
     if hasattr(transform, "translation"):
         return len(transform.translation)
 

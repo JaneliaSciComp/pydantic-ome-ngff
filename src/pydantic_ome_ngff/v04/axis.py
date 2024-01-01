@@ -1,7 +1,6 @@
 from __future__ import annotations
-from typing import Annotated
 
-from pydantic import AfterValidator, model_validator
+from pydantic import model_validator
 
 from pydantic_ome_ngff.base import StrictVersionedBase
 from pydantic_ome_ngff.v04.base import version
@@ -118,7 +117,6 @@ def check_type_unit(model: Axis) -> "Axis":
     return model
 
 
-
 class Axis(StrictVersionedBase):
     """
     Axis metadata.
@@ -131,6 +129,6 @@ class Axis(StrictVersionedBase):
     type: str | None
     unit: str | None
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def check_type_unit(self):
         return check_type_unit(self)

@@ -2,6 +2,7 @@ import pydantic_ome_ngff.v04.axis as axisV04
 
 AxisType = axisV04.AxisType
 
+
 class Axis(axisV04.Axis):
     """
     Axis metadata.

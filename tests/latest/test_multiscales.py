@@ -268,7 +268,8 @@ def test_coordinate_transforms_invalid_first_element(
     transforms: Tuple[Transform, Transform],
 ) -> None:
     with pytest.raises(
-        ValidationError, match="The first element of `coordinateTransformations` must be a"
+        ValidationError,
+        match="The first element of `coordinateTransformations` must be a",
     ):
         MultiscaleDataset(path="foo", coordinateTransformations=transforms)
 
@@ -286,7 +287,8 @@ def test_coordinate_transforms_invalid_second_element(
     transforms: Tuple[Transform, Transform],
 ) -> None:
     with pytest.raises(
-        ValidationError, match="The second element of `coordinateTransformations` must be a"
+        ValidationError,
+        match="The second element of `coordinateTransformations` must be a",
     ):
         MultiscaleDataset(path="foo", coordinateTransformations=transforms)
 

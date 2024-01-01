@@ -10,10 +10,12 @@ from pydantic_ome_ngff.v04.base import version
 ConInt = Annotated[int, Field(strict=True, ge=0, le=255)]
 RGBA = Tuple[ConInt, ConInt, ConInt, ConInt]
 
+
 class Color(BaseModel):
     """
     a label value and RGBA as defined in https://ngff.openmicroscopy.org/0.4/#label-md
     """
+
     label_value: int = Field(..., serialization_alias="label-value")
     rgba: RGBA | None
 
@@ -38,7 +40,7 @@ class ImageLabel(VersionedBase):
     colors: List[Color] | None = None
     properties: Properties | None = None
     source: Source | None = None
-    
+
     @field_validator("version")
     @classmethod
     def check_version(cls, ver: str | None) -> str:
@@ -57,7 +59,8 @@ class ImageLabel(VersionedBase):
         if colors is None:
             msg = (
                 f"The field `colors` is `None`. Version {cls._version} of"
-                "the OME-NGFF spec states that `colors` should be a list of label descriptors.")
+                "the OME-NGFF spec states that `colors` should be a list of label descriptors."
+            )
             warnings.warn(msg, stacklevel=1)
         else:
             dupes = duplicates(x.label_value for x in colors)
