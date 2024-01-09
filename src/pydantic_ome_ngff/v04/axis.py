@@ -69,29 +69,28 @@ class TimeUnit(str, Enum):
     zettasecond = "zettasecond"
 
 
-def check_type_unit(model: Axis) -> "Axis":
+def check_type_unit(model: Axis) -> Axis:
     """
-    Check that the `unit` attribute of an `Axis` object is valid. This function emits warnings when the units of an `Axis` object
+    Check that the `unit` attribute of an `Axis` object is valid.
+    This function emits warnings when the units of an `Axis` object
     are spec-compliant but go against a "SHOULD" statement in the spec.
     """
 
     typ = model.type
     unit = model.unit
 
-    if typ == AxisType.space:
-        if unit not in [e.value for e in SpaceUnit]:
-            msg = (
-                f"Unit '{unit}' is not recognized as a standard unit "
-                f"for an axis with type '{typ}'."
-            )
-            warnings.warn(msg)
-    elif typ == AxisType.time:
-        if unit not in [e.value for e in TimeUnit]:
-            msg = (
-                f"Unit '{unit}' is not recognized as a standard unit "
-                f"for an axis with type '{typ}'."
-            )
-            warnings.warn(msg)
+    if typ == AxisType.space and unit not in [e.value for e in SpaceUnit]:
+        msg = (
+            f"Unit '{unit}' is not recognized as a standard unit "
+            f"for an axis with type '{typ}'."
+        )
+        warnings.warn(msg)
+    elif typ == AxisType.time and unit not in [e.value for e in TimeUnit]:
+        msg = (
+            f"Unit '{unit}' is not recognized as a standard unit "
+            f"for an axis with type '{typ}'."
+        )
+        warnings.warn(msg)
     elif typ == AxisType.channel:
         pass
     elif typ is None:
@@ -124,7 +123,6 @@ class Axis(StrictVersionedBase):
     """
 
     _version = version
-    # SPEC: this should almost certainly be a string, but the spec doesn't specify the type: https://github.com/ome/ngff/blob/ee4d5dab677636a28f1f65c248a751e279a0d1fe/0.4/index.bs#L243
     name: str
     type: str | None
     unit: str | None

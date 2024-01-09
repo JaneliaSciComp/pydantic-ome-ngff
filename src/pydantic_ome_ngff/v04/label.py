@@ -1,12 +1,13 @@
 from __future__ import annotations
 import warnings
-from typing import List, Optional, Tuple, Annotated
+from typing import List, Literal, Optional, Tuple, Annotated
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import AfterValidator, BaseModel, Field, model_validator
 from pydantic_ome_ngff.base import VersionedBase
 from pydantic_ome_ngff.utils import duplicates
+from pydantic_ome_ngff.v04.base import version as NGFF_VERSION
 
-from pydantic_ome_ngff.v04.base import version
+import pydantic_ome_ngff.v04.multiscales as multiscales
 
 ConInt = Annotated[int, Field(strict=True, ge=0, le=255)]
 RGBA = Tuple[ConInt, ConInt, ConInt, ConInt]
@@ -18,15 +19,65 @@ class Color(BaseModel):
     """
 
     label_value: int = Field(..., serialization_alias="label-value")
-    rgba: RGBA | None
+    rgba: Optional[RGBA]
 
 
 class Source(BaseModel):
-    image: str | None = "../../"
+    # todo: add validation that this path resolves to something
+    image: Optional[str] = "../../"
 
 
-class Properties(BaseModel):
+class Property(BaseModel):
     label_value: int = Field(..., serialization_alias="label-value")
+
+
+def parse_colors(colors: List[Color] | None) -> List[Color] | None:
+    if colors is None:
+        msg = (
+            f"The field `colors` is `None`. Version {NGFF_VERSION} of"
+            "the OME-NGFF spec states that `colors` should be a list of label descriptors."
+        )
+        warnings.warn(msg, stacklevel=1)
+    else:
+        dupes = duplicates(x.label_value for x in colors)
+        if len(dupes) > 0:
+            msg = (
+                f"Duplicated label-value: {tuple(dupes.keys())}."
+                "label-values must be unique across elements of `colors`."
+            )
+            raise ValueError(msg)
+
+    return colors
+
+
+def parse_version(version: Literal["0.4"] | None) -> Literal["0.4"] | None:
+    if version is None:
+        msg = (
+            f"The `version` attribute is `None`. Version {NGFF_VERSION} of "
+            f"the OME-NGFF spec states that `version` must either be unset or the string {NGFF_VERSION}"
+        )
+        warnings.warn(msg, stacklevel=1)
+    return version
+
+
+def parse_imagelabel(model: ImageLabel):
+    """
+    check that label_values are consistent across properties and colors
+    """
+    if model.colors is not None and model.properties is not None:
+        prop_label_value = [prop.label_value for prop in model.properties]
+        color_label_value = [color.label_value for color in model.colors]
+
+        prop_label_value_set = set(prop_label_value)
+        color_label_value_set = set(color_label_value)
+        if color_label_value_set != prop_label_value_set:
+            msg = (
+                "Inconsistent `label_value` attributes in `colors` and `properties`."
+                f"The `properties` attributes have `label_values` {prop_label_value}, "
+                f"The `colors` attributes have `label_values` {color_label_value}, "
+            )
+            raise ValueError(msg)
+    return model
 
 
 class ImageLabel(VersionedBase):
@@ -35,41 +86,37 @@ class ImageLabel(VersionedBase):
     See https://ngff.openmicroscopy.org/0.4/#label-md
     """
 
-    _version = version
+    _version: Literal["0.4"] = NGFF_VERSION
 
-    version: Optional[str] = version
-    colors: List[Color] | None = None
-    properties: Properties | None = None
-    source: Source | None = None
+    version: Annotated[
+        Literal["0.4"] | None, AfterValidator(parse_version)
+    ] = NGFF_VERSION
+    colors: Annotated[Optional[List[Color]], AfterValidator(parse_colors)] = None
+    properties: Optional[List[Property]] = None
+    source: Optional[Source] = None
 
-    @field_validator("version")
-    @classmethod
-    def check_version(cls, ver: str | None) -> str:
-        if ver is None:
-            msg = (
-                f"The `version` attribute is `None`. Version {cls._version} of "
-                f"the OME-NGFF spec states that `version` must either be unset or the string {cls._version}"
-            )
-            warnings.warn(msg, stacklevel=1)
+    @model_validator(mode="after")
+    def parse_model(self):
+        return parse_imagelabel(self)
 
-        return ver
 
-    @field_validator("colors")
-    @classmethod
-    def check_colors(cls, colors: Optional[List[Color]]) -> Optional[List[Color]]:
-        if colors is None:
-            msg = (
-                f"The field `colors` is `None`. Version {cls._version} of"
-                "the OME-NGFF spec states that `colors` should be a list of label descriptors."
-            )
-            warnings.warn(msg, stacklevel=1)
-        else:
-            dupes = duplicates(x.label_value for x in colors)
-            if len(dupes) > 0:
-                msg = (
-                    f"Duplicated label-value: {tuple(dupes.keys())}."
-                    "label-values must be unique across elements of `colors`."
-                )
-                raise ValueError(msg)
+class GroupAttrs(multiscales.GroupAttrs):
+    """
+    Attributes for a Zarr group that contains `image-label` metadata.
+    Inherits from `v04.multiscales.MultiscaleAttrs`.
 
-        return colors
+    See https://ngff.openmicroscopy.org/0.4/#label-md
+
+    Attributes
+    ----------
+    image_label: `ImageLabel`
+        Image label metadata.
+    multiscales: List[v04.multiscales.Multiscales]
+        Multiscale image metadata.
+    """
+
+    image_label: Annotated[ImageLabel, Field(..., serialization_alias="image-label")]
+
+
+class Group(multiscales.Group):
+    attributes: GroupAttrs

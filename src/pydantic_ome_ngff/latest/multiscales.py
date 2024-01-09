@@ -4,7 +4,7 @@ from pydantic_ome_ngff.latest.base import version
 import pydantic_ome_ngff.v04.multiscales as msv04
 
 
-class MultiscaleDataset(msv04.MultiscaleDataset):
+class Dataset(msv04.Dataset):
     """
     A single entry in the multiscales.datasets list.
     See https://ngff.openmicroscopy.org/latest/#multiscale-md
@@ -23,7 +23,7 @@ class MultiscaleDataset(msv04.MultiscaleDataset):
     ...
 
 
-class Multiscale(msv04.Multiscale):
+class MultiscaleMetadata(msv04.MultiscaleMetadata):
     """
     Multiscale image metadata.
     See https://ngff.openmicroscopy.org/latest/#multiscale-md
@@ -33,14 +33,14 @@ class Multiscale(msv04.Multiscale):
     version: Literal["0.5-dev"] = version
 
 
-class MultiscaleAttrs(msv04.MultiscaleAttrs):
+class GroupAttrs(msv04.GroupAttrs):
     """
     Attributes of a multiscale group.
     See https://ngff.openmicroscopy.org/latest/#multiscale-md
     """
 
 
-class MultiscaleGroup(msv04.MultiscaleGroup):
+class Group(msv04.Group):
     """
     A model of a Zarr group that implements OME-NGFF Multiscales metadata, version 0.5-dev.
 
