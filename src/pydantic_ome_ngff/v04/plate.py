@@ -7,7 +7,7 @@ from pydantic_ome_ngff.v04.base import version
 from pydantic_zarr.v2 import GroupSpec, ArraySpec
 from typing import Union
 
-from pydantic_ome_ngff.v04.well import WellGroup
+import pydantic_ome_ngff.v04.well as well
 
 
 class Acquisition(BaseModel):
@@ -20,14 +20,14 @@ class Entry(BaseModel):
     name: str
 
 
-class WellMeta(BaseModel):
+class WellMetadata(BaseModel):
     # must be {rowName}/{columnName}
     path: str
     rowIndex: NonNegativeInt
     columnIndex: NonNegativeInt
 
 
-class PlateMeta(VersionedBase):
+class PlateMetadata(VersionedBase):
     """
     Plate metadata
     see https://ngff.openmicroscopy.org/0.4/#plate-md
@@ -35,28 +35,28 @@ class PlateMeta(VersionedBase):
 
     # the version here as a private class attribute because the version is not required by the spec
     _version = version
-    version: Optional[str] = version
-    name: Optional[str] = None
+    version: str | None = version
+    name: str | None = None
     acquisitions: List[Acquisition]
     columns: List[Entry]
     rows: List[Entry]
     field_count: PositiveInt
-    wells: List[WellMeta]
+    wells: List[WellMetadata]
 
 
-class PlateAttributes(BaseModel):
-    plate: PlateMeta
+class GroupAttrs(BaseModel):
+    plate: PlateMetadata
 
 
-class PlateGroup(GroupSpec[PlateAttributes, Union[WellGroup, GroupSpec, ArraySpec]]):
+class Group(GroupSpec[GroupAttrs, Union[well.Group, GroupSpec, ArraySpec]]):
     @field_validator("members", mode="after")
     @classmethod
     def contains_well(
-        cls, members: Union[WellGroup, GroupSpec, ArraySpec]
-    ) -> Union[WellGroup, GroupSpec, ArraySpec]:
+        cls, members: Union[Group, GroupSpec, ArraySpec]
+    ) -> Union[Group, GroupSpec, ArraySpec]:
         """
         Check that .members contains a WellGroup
         """
-        if not any(map(lambda v: isinstance(v, WellGroup), members.values())):
+        if not any(map(lambda v: isinstance(v, Group), members.values())):
             raise ValidationError
         return members

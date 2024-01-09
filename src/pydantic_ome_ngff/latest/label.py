@@ -11,4 +11,4 @@ class ImageLabel(ImageLabelV04):
     # we need to put the version here as a private class attribute because the version
     # is not required by the spec...
     _version = version
-    version: Optional[str] = version
+    version: str | None = version

@@ -5,10 +5,10 @@ import pytest
 import jsonschema as jsc
 from pydantic_zarr.v2 import ArraySpec
 from pydantic_ome_ngff.v04.multiscales import (
-    Multiscale,
-    MultiscaleAttrs,
-    MultiscaleDataset,
-    MultiscaleGroup,
+    MultiscaleMetadata,
+    GroupAttrs,
+    Dataset,
+    Group,
 )
 
 from pydantic_ome_ngff.v04.transforms import (
@@ -23,7 +23,7 @@ loader = JsonLoader("v04")
 
 
 @pytest.fixture
-def default_multiscale() -> Multiscale:
+def default_multiscale() -> MultiscaleMetadata:
     axes = [
         Axis(name="z", type="space", unit="meter"),
         Axis(name="x", type="space", unit="meter"),
@@ -32,7 +32,7 @@ def default_multiscale() -> Multiscale:
     rank = len(axes)
     num_datasets = 3
     datasets = [
-        MultiscaleDataset(
+        Dataset(
             path=f"path{idx}",
             coordinateTransformations=[
                 VectorScale(
@@ -52,7 +52,7 @@ def default_multiscale() -> Multiscale:
         for idx in range(num_datasets)
     ]
 
-    multi = Multiscale(
+    multi = MultiscaleMetadata(
         name="foo",
         axes=axes,
         datasets=datasets,
@@ -68,7 +68,7 @@ def default_multiscale() -> Multiscale:
     return multi
 
 
-def test_multiscale(default_multiscale: Multiscale) -> None:
+def test_multiscale(default_multiscale: MultiscaleMetadata) -> None:
     base_schema, strict_schema = fetch_schemas("0.4", schema_name="image")
     jsc.validate({"multiscales": [default_multiscale.model_dump()]}, strict_schema)
 
@@ -82,7 +82,7 @@ def test_multiscale_unique_axis_names() -> None:
     # this should be fine
 
     datasets = [
-        MultiscaleDataset(
+        Dataset(
             path="path",
             coordinateTransformations=[
                 VectorScale(scale=[1, 1, 1]),
@@ -91,7 +91,7 @@ def test_multiscale_unique_axis_names() -> None:
         )
     ]
 
-    Multiscale(
+    MultiscaleMetadata(
         name="foo",
         axes=axes,
         datasets=datasets,
@@ -106,7 +106,7 @@ def test_multiscale_unique_axis_names() -> None:
         Axis(name="x", type="space", unit="meter"),
     ]
     datasets = [
-        MultiscaleDataset(
+        Dataset(
             path="path",
             coordinateTransformations=[
                 VectorScale(scale=[1, 1, 1]),
@@ -116,7 +116,7 @@ def test_multiscale_unique_axis_names() -> None:
     ]
 
     with pytest.raises(ValidationError, match="Axis names must be unique."):
-        Multiscale(
+        MultiscaleMetadata(
             name="foo",
             axes=axes,
             datasets=datasets,
@@ -146,7 +146,7 @@ def test_multiscale_space_axes_last(axis_types: List[Optional[str]]) -> None:
 
     rank = len(axes)
     datasets = [
-        MultiscaleDataset(
+        Dataset(
             path="path",
             coordinateTransformations=[
                 VectorScale(
@@ -166,7 +166,7 @@ def test_multiscale_space_axes_last(axis_types: List[Optional[str]]) -> None:
     ]
     # TODO: make some axis-specifc exceptions
     with pytest.raises(ValidationError, match="Space axes must come last."):
-        Multiscale(
+        MultiscaleMetadata(
             name="foo",
             axes=axes,
             datasets=datasets,
@@ -186,7 +186,7 @@ def test_multiscale_axis_length(num_axes: int) -> None:
     rank = num_axes
     axes = [Axis(name=str(idx), type="space", unit="meter") for idx in range(num_axes)]
     datasets = [
-        MultiscaleDataset(
+        Dataset(
             path="path",
             coordinateTransformations=[
                 VectorScale(
@@ -205,7 +205,7 @@ def test_multiscale_axis_length(num_axes: int) -> None:
         )
     ]
     with pytest.raises(ValidationError, match="Incorrect number of axes provided"):
-        Multiscale(
+        MultiscaleMetadata(
             name="foo",
             axes=axes,
             datasets=datasets,
@@ -229,7 +229,7 @@ def test_coordinate_transforms_invalid_ndims() -> None:
         ValidationError,
         match="The transforms have inconsistent dimensionality.",  # noqa
     ):
-        MultiscaleDataset(path="foo", coordinateTransformations=tforms)
+        Dataset(path="foo", coordinateTransformations=tforms)
 
 
 @pytest.mark.parametrize(
@@ -250,7 +250,7 @@ def test_coordinate_transforms_invalid_length(
     transforms: List[Transform],
 ) -> None:
     with pytest.raises(ValidationError, match="expected 1 or 2"):
-        MultiscaleDataset(path="foo", coordinateTransformations=transforms)
+        Dataset(path="foo", coordinateTransformations=transforms)
 
 
 @pytest.mark.parametrize(
@@ -273,7 +273,7 @@ def test_coordinate_transforms_invalid_first_element(
         ValidationError,
         match="The first element of `coordinateTransformations` must be a",
     ):
-        MultiscaleDataset(path="foo", coordinateTransformations=transforms)
+        Dataset(path="foo", coordinateTransformations=transforms)
 
 
 @pytest.mark.parametrize(
@@ -292,18 +292,20 @@ def test_coordinate_transforms_invalid_second_element(
         ValidationError,
         match="The second element of `coordinateTransformations` must be a",
     ):
-        MultiscaleDataset(path="foo", coordinateTransformations=transforms)
+        Dataset(path="foo", coordinateTransformations=transforms)
 
 
-def test_multiscale_group_datasets_exist(default_multiscale: Multiscale) -> None:
-    group_attrs = MultiscaleAttrs(multiscales=[default_multiscale])
+def test_multiscale_group_datasets_exist(
+    default_multiscale: MultiscaleMetadata,
+) -> None:
+    group_attrs = GroupAttrs(multiscales=[default_multiscale])
     good_items = {
         d.path: ArraySpec(
             shape=(1, 1, 1, 1), dtype="uint8", chunks=(1, 1, 1, 1), attributes={}
         )
         for d in default_multiscale.datasets
     }
-    MultiscaleGroup(attributes=group_attrs, members=good_items)
+    Group(attributes=group_attrs, members=good_items)
 
     with pytest.raises(
         ValidationError,
@@ -315,18 +317,18 @@ def test_multiscale_group_datasets_exist(default_multiscale: Multiscale) -> None
             )
             for d in default_multiscale.datasets
         }
-        MultiscaleGroup(attributes=group_attrs, members=bad_items)
+        Group(attributes=group_attrs, members=bad_items)
 
 
-def test_multiscale_group_datasets_rank(default_multiscale: Multiscale) -> None:
-    group_attrs = MultiscaleAttrs(multiscales=[default_multiscale])
+def test_multiscale_group_datasets_rank(default_multiscale: MultiscaleMetadata) -> None:
+    group_attrs = GroupAttrs(multiscales=[default_multiscale])
     good_items = {
         d.path: ArraySpec(
             shape=(1, 1, 1, 1), dtype="uint8", chunks=(1, 1, 1, 1), attributes={}
         )
         for d in default_multiscale.datasets
     }
-    MultiscaleGroup(attributes=group_attrs, members=good_items)
+    Group(attributes=group_attrs, members=good_items)
 
     with pytest.raises(
         ValidationError, match="All arrays must have the same dimensionality."
@@ -341,7 +343,7 @@ def test_multiscale_group_datasets_rank(default_multiscale: Multiscale) -> None:
             )
             for idx, d in enumerate(default_multiscale.datasets)
         }
-        MultiscaleGroup(attributes=group_attrs, members=bad_items)
+        Group(attributes=group_attrs, members=bad_items)
 
     with pytest.raises(ValidationError, match="Transform dimensionality"):
         # arrays with rank that doesn't match the transform
@@ -349,4 +351,4 @@ def test_multiscale_group_datasets_rank(default_multiscale: Multiscale) -> None:
             d.path: ArraySpec(shape=(1,), dtype="uint8", chunks=(1,), attributes={})
             for d in default_multiscale.datasets
         }
-        MultiscaleGroup(attributes=group_attrs, members=bad_items)
+        Group(attributes=group_attrs, members=bad_items)

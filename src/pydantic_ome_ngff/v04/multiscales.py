@@ -56,7 +56,7 @@ def ensure_transforms_length(
     return transforms
 
 
-class MultiscaleDataset(StrictBase):
+class Dataset(StrictBase):
     """
     A single entry in the multiscales.datasets list.
     See https://ngff.openmicroscopy.org/0.4/#multiscale-md
@@ -135,7 +135,7 @@ def ensure_axis_types(axes: Sequence[Axis]) -> Sequence[Axis]:
     return axes
 
 
-class Multiscale(VersionedBase):
+class MultiscaleMetadata(StrictVersionedBase):
     """
     Multiscale image metadata.
     See https://ngff.openmicroscopy.org/0.4/#multiscale-md
@@ -162,7 +162,7 @@ class Multiscale(VersionedBase):
     name: Any = None
     type: Any = None
     metadata: Dict[str, Any] | None = None
-    datasets: List[MultiscaleDataset]
+    datasets: Annotated[List[Dataset], Field(..., min_length=1)]
     axes: Annotated[
         List[Axis],
         AfterValidator(ensure_axis_length),
@@ -173,16 +173,16 @@ class Multiscale(VersionedBase):
     coordinateTransformations: List[tx.Scale | tx.Translation] | None = None
 
 
-class MultiscaleAttrs(BaseModel):
+class GroupAttrs(BaseModel):
     """
     Attributes of a multiscale group.
     See https://ngff.openmicroscopy.org/0.4/#multiscale-md
     """
 
-    multiscales: Annotated[List[Multiscale], Field(..., min_length=1)]
+    multiscales: Annotated[List[MultiscaleMetadata], Field(..., min_length=1)]
 
 
-class MultiscaleGroup(GroupSpec[MultiscaleAttrs, ArraySpec | GroupSpec]):
+class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
     """
     A model of a Zarr group that implements OME-NGFF Multiscales metadata, version 0.4.
 
@@ -190,20 +190,19 @@ class MultiscaleGroup(GroupSpec[MultiscaleAttrs, ArraySpec | GroupSpec]):
     ----------
 
     attributes: MultiscaleAttrs
-        The attributes of this Zarr group, which should contain valid `MultiscaleAttrs`. Extra
-        values are allowed.
+        The attributes of this Zarr group, which should contain valid `MultiscaleAttrs`.
     members Dict[Str, ArraySpec | GroupSpec]:
         The members of this Zarr group. Should be instances of `pydantic_zarr.GroupSpec` or `pydantic_zarr.ArraySpec`.
 
     """
 
     @model_validator(mode="after")
-    def check_arrays_exist(self) -> "MultiscaleGroup":
+    def check_arrays_exist(self) -> "Group":
         """
         Check that the arrays referenced in the `multiscales` metadata are actually contained in this group.
 
         Note that this is currently too strict, since it will not check for arrays in subgroups, but this is
-        allowed by the spec. I will implement tree-flattening over in pydantic-zarr to fix this.
+        allowed by the spec. Adding tree-flattening here or in pydantic-zarr can fix this.
         """
         attrs = self.attributes
         array_items: dict[str, dict[str, ArraySpec]] = {
@@ -222,7 +221,7 @@ class MultiscaleGroup(GroupSpec[MultiscaleAttrs, ArraySpec | GroupSpec]):
         return self
 
     @model_validator(mode="after")
-    def check_array_ndim(self) -> "MultiscaleGroup":
+    def check_array_ndim(self) -> "Group":
         """
         Check that all the arrays referenced by the `multiscales` metadata have the same
         dimensionality, and that this dimensionality is consistent with the `coordinateTransformations` metadata.

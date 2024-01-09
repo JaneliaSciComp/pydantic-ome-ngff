@@ -5,7 +5,7 @@ from pydantic import BaseModel, ValidationError, field_validator
 from pydantic_ome_ngff.base import VersionedBase
 
 from pydantic_ome_ngff.v04.base import version
-from pydantic_ome_ngff.v04.multiscales import MultiscaleGroup
+import pydantic_ome_ngff.v04.multiscales as multiscales
 from pydantic_zarr.v2 import GroupSpec, ArraySpec
 
 
@@ -14,33 +14,30 @@ class Image(BaseModel):
     acquisition: Optional[int]
 
 
-class WellMeta(VersionedBase):
+class WellMetadata(VersionedBase):
     """
     Well metadata.
     See https://ngff.openmicroscopy.org/0.4/#well-md
     """
 
-    # the version here as a private class attribute because the version is not required by the spec
     _version = version
-    version: Optional[str] = version
+    version: str | None = version
     images: List[Image]
 
 
-class WellAttributes(BaseModel):
-    well: WellMeta
+class GroupAttrs(BaseModel):
+    well: WellMetadata
 
 
-class WellGroup(
-    GroupSpec[WellAttributes, Union[MultiscaleGroup, GroupSpec, ArraySpec]]
-):
+class Group(GroupSpec[GroupAttrs, Union[multiscales.Group, GroupSpec, ArraySpec]]):
     @field_validator("members", mode="after")
     @classmethod
     def contains_well(
-        cls, members: Union[MultiscaleGroup, GroupSpec, ArraySpec]
-    ) -> Union[MultiscaleGroup, GroupSpec, ArraySpec]:
+        cls, members: Union[Group, GroupSpec, ArraySpec]
+    ) -> Union[Group, GroupSpec, ArraySpec]:
         """
         Check that .members contains a MultiscaleGroup
         """
-        if not any(map(lambda v: isinstance(v, WellGroup), members.values())):
+        if not any(map(lambda v: isinstance(v, Group), members.values())):
             raise ValidationError
         return members

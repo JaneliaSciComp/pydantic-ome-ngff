@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Optional
 from pydantic_ome_ngff.latest.base import version
-from pydantic_ome_ngff.v04.well import WellMeta as WellMetaV04
+from pydantic_ome_ngff.v04.well import WellMetadata as WellMetaV04
 
 
 class WellMeta(WellMetaV04):
