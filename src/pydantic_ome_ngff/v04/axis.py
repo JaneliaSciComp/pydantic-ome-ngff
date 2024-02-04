@@ -9,6 +9,9 @@ from enum import Enum
 
 
 class AxisType(str, Enum):
+    """
+    String enum representing the three axis types (`space`, `time`, `channel`) defined in the specification.
+    """
     space = "space"
     time = "time"
     channel = "channel"
@@ -72,25 +75,27 @@ class TimeUnit(str, Enum):
 def check_type_unit(model: Axis) -> Axis:
     """
     Check that the `unit` attribute of an `Axis` object is valid.
-    This function emits warnings when the units of an `Axis` object
-    are spec-compliant but go against a "SHOULD" statement in the spec.
+    This function emits warnings when the `unit` attribute of of an `Axis` object
+    is spec-compliant but contravenes a "SHOULD" statement in the spec.
     """
 
     typ = model.type
     unit = model.unit
 
-    if typ == AxisType.space and unit not in [e.value for e in SpaceUnit]:
-        msg = (
-            f"Unit '{unit}' is not recognized as a standard unit "
-            f"for an axis with type '{typ}'."
-        )
-        warnings.warn(msg)
-    elif typ == AxisType.time and unit not in [e.value for e in TimeUnit]:
-        msg = (
-            f"Unit '{unit}' is not recognized as a standard unit "
-            f"for an axis with type '{typ}'."
-        )
-        warnings.warn(msg)
+    if typ == AxisType.space:
+         if unit not in [e.value for e in SpaceUnit]:
+            msg = (
+                f"Unit '{unit}' is not recognized as a standard unit "
+                f"for an axis with type '{typ}'."
+            )
+            warnings.warn(msg)
+    elif typ == AxisType.time:
+        if unit not in [e.value for e in TimeUnit]:
+            msg = (
+                f"Unit '{unit}' is not recognized as a standard unit "
+                f"for an axis with type '{typ}'."
+            )
+            warnings.warn(msg)
     elif typ == AxisType.channel:
         pass
     elif typ is None:
@@ -119,7 +124,18 @@ def check_type_unit(model: Axis) -> Axis:
 class Axis(StrictVersionedBase):
     """
     Axis metadata.
-    See https://ngff.openmicroscopy.org/0.4/#axes-md
+
+    See [https://ngff.openmicroscopy.org/0.4/#axes-md](https://ngff.openmicroscopy.org/0.4/#axes-md) for the specification of this data structure.
+
+    Attributes
+    ----------
+
+    name: str
+        The name for this axis.
+    type: str | None
+        The type for this axis, e.g. `space`.
+    unit: str | None
+        The unit of measure associated with the interval defined by this axis.
     """
 
     _version = version

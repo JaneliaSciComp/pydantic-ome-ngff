@@ -6,17 +6,34 @@ from pydantic_ome_ngff.base import StrictBase
 
 class Identity(StrictBase):
     """
-    An identity transform. It has no parameters, and no valid use according to the spec.
-    See https://ngff.openmicroscopy.org/0.4/#trafo-md
+    An identity transform. It has no parameters other than `type`, and no valid use according to the spec.
+    
+    See [https://ngff.openmicroscopy.org/0.4/#trafo-md](https://ngff.openmicroscopy.org/0.4/#trafo-md) for the specification of this data structure.
+
+    Attributes
+    ----------
+
+    type: Literal["identity"]
+        The string "identity".
+
     """
 
-    type: str = "identity"
+    type: Literal["identity"] = "identity"
 
 
 class PathTranslation(StrictBase):
     """
-    A coordinateTransform with a `path` field.
-    See https://ngff.openmicroscopy.org/0.4/#trafo-md
+    A translation transformation with a `path` field. The spec states that `path` should resolve to "binary data".
+
+    See [https://ngff.openmicroscopy.org/0.4/#trafo-md](https://ngff.openmicroscopy.org/0.4/#trafo-md) for the specification of this data structure.
+    
+    Attributes
+    ----------
+
+    type: Literal["translation"]
+        The string "translation".
+    path: str
+        A string reference to something that can be interpreted as defining a translation transformation.
     """
 
     type: Literal["translation"] = "translation"
@@ -25,8 +42,16 @@ class PathTranslation(StrictBase):
 
 class PathScale(StrictBase):
     """
-    A coordinateTransform with a `path` field.
-    See https://ngff.openmicroscopy.org/0.4/#trafo-md
+    A scaling transformation with a `path` field. The spec states that `path` should resolve to "binary data".
+    
+    See [https://ngff.openmicroscopy.org/0.4/#trafo-md](https://ngff.openmicroscopy.org/0.4/#trafo-md) for the specification of this data structure.
+
+    Attributes
+    ----------
+    type: Literal["scale"]
+        The string "scale".
+    path: str
+        A string reference to something that can be interpreted as defining a scaling transformation.
     """
 
     type: Literal["scale"] = "scale"
@@ -35,8 +60,16 @@ class PathScale(StrictBase):
 
 class VectorTranslation(StrictBase):
     """
-    A translation transform with a `translate` field that is a vector.
-    See https://ngff.openmicroscopy.org/0.4/#trafo-md
+    A translation transformation defined by a sequence of numbers.
+    
+    See [https://ngff.openmicroscopy.org/0.4/#trafo-md](https://ngff.openmicroscopy.org/0.4/#trafo-md) for the specification of this data structure.
+
+    Attributes
+    ----------
+    type: Literal["translation"]
+        The string "translation".
+    translation: Sequence[float | int]
+        A sequence of numbers that define an N-dimensional translation transformation.
     """
 
     type: Literal["translation"] = "translation"
@@ -45,8 +78,16 @@ class VectorTranslation(StrictBase):
 
 class VectorScale(StrictBase):
     """
-    A scale transform with a `scale` field that is a vector.
-    See https://ngff.openmicroscopy.org/0.4/#trafo-md
+    A scaling transformation defined by a sequence of numbers.
+    
+    See [https://ngff.openmicroscopy.org/0.4/#trafo-md](https://ngff.openmicroscopy.org/0.4/#trafo-md) for the specification of this data structure.
+
+    Attributes
+    ----------
+    type: Literal["scale"]
+        The string "scale".
+    scale: Sequence[float | int]
+        A sequence of numbers that define an  N-dimensional scaling transformation.
     """
 
     type: Literal["scale"] = "scale"
@@ -57,7 +98,7 @@ def ndim(
     transform: Union[VectorScale, VectorTranslation],
 ) -> int:
     """
-    Get the dimensionality of a vector transform (scale or translation).
+    Get the dimensionality of a `VectorScale` or `VectorTranslation`.
     """
     if hasattr(transform, "scale"):
         return len(transform.scale)
@@ -76,15 +117,15 @@ def scale_translation(
     scale: Sequence[float], translation: Sequence[float]
 ) -> Tuple[Scale, Translation]:
     """
-    Create a scale and transformation transformation from a scale and a translation parameter
+    Create a `VectorScale` and a `VectorTranslation` from a scale and a translation parameter.
     """
     len_scale = len(scale)
     len_translation = len(translation)
     if len_scale < 1:
-        msg = f"Not enough values in scale. Got {len_scale}"
+        msg = f"Not enough values in scale. Got 0, expected at least 1."
         raise ValueError(msg)
     if len_translation < 1:
-        msg = f"Not enough values in `tranlsation`. Got {len_translation}"
+        msg = f"Not enough values in `translation`. Got 0, expected at least 1."
         raise ValueError(msg)
     if len_translation != len_scale:
         msg = (
@@ -100,12 +141,11 @@ Scale = VectorScale | PathScale
 Translation = VectorTranslation | PathTranslation
 Transform = Scale | Translation
 
-
 def ensure_dimensionality(
     transforms: Sequence[VectorScale | VectorTranslation],
 ) -> Sequence[VectorScale | VectorTranslation]:
     """
-    Ensure that the elements of `Sequence[VectorTransform]`
+    Ensures that the elements in the input sequence define transformations with identical dimensionality.
     """
     ndims = tuple(ndim(tx) for tx in transforms)
     ndims_set = set(ndims)
