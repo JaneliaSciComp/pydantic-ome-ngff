@@ -32,12 +32,12 @@ class GroupAttrs(BaseModel):
 class Group(GroupSpec[GroupAttrs, Union[multiscales.Group, GroupSpec, ArraySpec]]):
     @field_validator("members", mode="after")
     @classmethod
-    def contains_well(
+    def contains_multiscale_group(
         cls, members: Union[Group, GroupSpec, ArraySpec]
     ) -> Union[Group, GroupSpec, ArraySpec]:
         """
         Check that .members contains a MultiscaleGroup
         """
-        if not any(map(lambda v: isinstance(v, Group), members.values())):
+        if not any(map(lambda v: isinstance(v, multiscales.Group), members.values())):
             raise ValidationError
         return members

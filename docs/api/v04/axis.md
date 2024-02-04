@@ -1,0 +1,1 @@
+::: pydantic_ome_ngff.v04.axis

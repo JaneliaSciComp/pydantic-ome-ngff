@@ -15,7 +15,7 @@ RGBA = Tuple[ConInt, ConInt, ConInt, ConInt]
 
 class Color(BaseModel):
     """
-    a label value and RGBA as defined in https://ngff.openmicroscopy.org/0.4/#label-md
+    A label value and RGBA as defined in https://ngff.openmicroscopy.org/0.4/#label-md
     """
 
     label_value: int = Field(..., serialization_alias="label-value")

@@ -9,24 +9,21 @@ from pydantic_ome_ngff.base import StrictBase, StrictVersionedBase
 from pydantic_ome_ngff.v04.base import version
 from pydantic_ome_ngff.v04.axis import Axis, AxisType
 import pydantic_ome_ngff.v04.transforms as tx
+import numpy.typing as npt
 
 VALID_NDIM = (2, 3, 4, 5)
-
 
 def ensure_scale_translation(
     transforms: Sequence[Union[tx.VectorScale, tx.VectorTranslation]],
 ) -> Sequence[Union[tx.VectorScale, tx.VectorTranslation]]:
     """
-    Ensure that
-        - the first element is a scale transformation
-        - the second element, if present, is a translation transform
-        - there are only 1 or 2 transforms
+    Ensures that the first element is a scale transformation, the second element, 
+    if present, is a translation transform, and that there are only 1 or 2 transforms.
     """
 
     if len(transforms) == 0 or len(transforms) > 2:
-        raise ValueError(
-            f"Invalid number of transforms: got {len(transforms)}, expected 1 or 2"
-        )
+        msg = f"Invalid number of transforms: got {len(transforms)}, expected 1 or 2"
+        raise ValueError(msg)
 
     maybe_scale = transforms[0]
     if maybe_scale.type != "scale":
@@ -58,16 +55,17 @@ def ensure_transforms_length(
 
 class Dataset(StrictBase):
     """
-    A single entry in the multiscales.datasets list.
-    See https://ngff.openmicroscopy.org/0.4/#multiscale-md
+    A single entry in the `multiscales.datasets` list.
+    
+    See [https://ngff.openmicroscopy.org/0.4/#multiscale-md](https://ngff.openmicroscopy.org/0.4/#multiscale-md) for the specification of this data structure.
 
-    Attributes:
+    Attributes
     ----------
     path: str
-        The path to the zarr array that stores the image described by this metadata.
-        This path should be relative to the group that contains this metadata.
+        The path to the Zarr array that stores the image described by this metadata. This path should be relative to the group that contains this metadata.
     coordinateTransformations: ctx.ScaleTransform | ctx.TranslationTransform
         The coordinate transformations for this image.
+
     """
 
     path: str
@@ -81,7 +79,7 @@ class Dataset(StrictBase):
 
 def ensure_axis_length(axes: Sequence[Axis]) -> Sequence[Axis]:
     """
-    Ensure that there are between 2 and 5 axes (inclusive)
+    Ensures that there are between 2 and 5 axes (inclusive)
     """
     if (len_axes := len(axes)) not in VALID_NDIM:
         msg = f"Incorrect number of axes provided ({len_axes}). Only 2, 3, 4, or 5 axes are allowed."
@@ -91,7 +89,7 @@ def ensure_axis_length(axes: Sequence[Axis]) -> Sequence[Axis]:
 
 def ensure_axis_names(axes: Sequence[Axis]) -> Sequence[Axis]:
     """
-    Ensure that the names of the axes are unique
+    Ensures that the names of the axes are unique.
     """
     name_dupes = duplicates(a.name for a in axes)
     if len(name_dupes) > 0:
@@ -102,12 +100,13 @@ def ensure_axis_names(axes: Sequence[Axis]) -> Sequence[Axis]:
 
 def ensure_axis_types(axes: Sequence[Axis]) -> Sequence[Axis]:
     """
-    Ensure that the following conditions hold:
-        - there are only 2 or 3 axes with type "space"
-        - the axes with type "space" are last in the list of axes
-        - there is only 1 axis with type "time"
-        - there is only 1 axis with type "channel"
-        - there is only 1 axis with a custom type
+        Ensures that the following conditions are true:
+
+        - there are only 2 or 3 axes with type `space`
+        - the axes with type `space` are last in the list of axes
+        - there is only 1 axis with type `time`
+        - there is only 1 axis with type `channel`
+        - there is only 1 axis with a type that is not `space`, `time`, or `channel`
     """
     axis_types = [ax.type for ax in axes]
     type_census = Counter(axis_types)
@@ -138,7 +137,8 @@ def ensure_axis_types(axes: Sequence[Axis]) -> Sequence[Axis]:
 class MultiscaleMetadata(StrictVersionedBase):
     """
     Multiscale image metadata.
-    See https://ngff.openmicroscopy.org/0.4/#multiscale-md
+    
+    See [https://ngff.openmicroscopy.org/0.4/#multiscale-md](https://ngff.openmicroscopy.org/0.4/#multiscale-md) for the specification of this data structure.
 
     Attributes
     ----------
@@ -154,7 +154,8 @@ class MultiscaleMetadata(StrictVersionedBase):
     axes: List[Axis]
         A list of `Axis` objects that define the semantics for the different axes of the multiscale image.
     coordinateTransformations: List[tx.Scale, tx.Translation]
-
+        Coordinate transformations that express a scaling and translation shared by all elements of 
+        `datasets`.
     """
 
     _version = version
@@ -169,14 +170,19 @@ class MultiscaleMetadata(StrictVersionedBase):
         AfterValidator(ensure_axis_names),
         AfterValidator(ensure_axis_types),
     ]
-
     coordinateTransformations: List[tx.Scale | tx.Translation] | None = None
 
 
 class GroupAttrs(BaseModel):
     """
-    Attributes of a multiscale group.
-    See https://ngff.openmicroscopy.org/0.4/#multiscale-md
+    A model of the required attributes of a Zarr group that implements OME-NGFF Multiscales metadata.
+    
+    See [https://ngff.openmicroscopy.org/0.4/#multiscale-md](https://ngff.openmicroscopy.org/0.4/#multiscale-md) for the specification of this data structure.    
+    
+    Attributes
+    ----------
+    multiscales: List[MultiscaleMetadata]
+        A list of `MultiscaleMetadata`. Each element of `multiscales` specifies a multiscale image. 
     """
 
     multiscales: Annotated[List[MultiscaleMetadata], Field(..., min_length=1)]
@@ -184,7 +190,9 @@ class GroupAttrs(BaseModel):
 
 class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
     """
-    A model of a Zarr group that implements OME-NGFF Multiscales metadata, version 0.4.
+    A model of a Zarr group that implements OME-NGFF Multiscales metadata.
+    
+    See [https://ngff.openmicroscopy.org/0.4/#multiscale-md](https://ngff.openmicroscopy.org/0.4/#multiscale-md) for the specification of this data structure.
 
     Attributes
     ----------
@@ -195,6 +203,31 @@ class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
         The members of this Zarr group. Should be instances of `pydantic_zarr.GroupSpec` or `pydantic_zarr.ArraySpec`.
 
     """
+    @classmethod
+    def from_arrays(
+        cls, 
+        arrays: npt.NDArray[Any],
+        paths: Sequence[str],
+        transforms: Sequence[Sequence[tx.Transform]],
+        axes: Sequence[Axis],
+        *, 
+        name: str | None = None, 
+        type: str | None = None, 
+        metadata: Dict[str, Any] | None = None,
+        top_level_transforms: List[tx.Transform] | None = None, 
+        **kwargs):
+            """
+            Create a `Group` from a sequence of arrays + spatial metadata.
+            """
+            members = {key: ArraySpec.from_array(arr, **kwargs) for key, arr in zip(paths, arrays, strict=True)}
+            multimeta = MultiscaleMetadata(
+                name=name, 
+                type=type,
+                metadata=metadata,
+                axes=axes,
+                datasets=[Dataset(path=path, coordinateTransformations=txs) for path, txs in zip(paths, transforms, strict=True)],
+                coordinateTransformations=top_level_transforms)
+            return cls(members=members, attributes=multimeta)
 
     @model_validator(mode="after")
     def check_arrays_exist(self) -> "Group":

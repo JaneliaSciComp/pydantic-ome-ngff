@@ -14,7 +14,7 @@ class Dataset(msv04.Dataset):
     Attributes:
     ----------
     path: str
-        The path to the zarr array that stores the image described by this metadata.
+        The path to the Zarr array that stores the image described by this metadata.
         This path should be relative to the group that contains this metadata.
     coordinateTransformations: ctx.ScaleTransform | ctx.TranslationTransform
         The coordinate transformations for this image.
