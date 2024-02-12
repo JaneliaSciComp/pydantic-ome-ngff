@@ -1,0 +1,63 @@
+site_name: pydantic-ome-ngff
+site_url: https://janeliascicomp.github.io/pydantic-ome-ngff/
+site_author: Davis Bennett
+site_description: >-
+  Pydantic models for the OME-NGFF file format.
+
+# Repository
+repo_name: janeliascicomp/pydantic-ome-ngff
+repo_url: https://github.com/janeliascicomp/pydantic-zarr
+
+# Copyright
+copyright: Copyright &copy; 2016 - 2023 HHMI / Janelia
+
+theme:
+  features:
+    - navigation.expand
+  name: material
+  palette: 
+  # Palette toggle for light mode
+  - scheme: default
+    toggle:
+      icon: material/brightness-7 
+      name: Switch to dark mode
+
+  # Palette toggle for dark mode
+  - scheme: slate
+    toggle:
+      icon: material/brightness-4
+      name: Switch to light mode
+
+nav:
+    - About: index.md
+    - API:
+      - v04:
+        - api/v04/multiscales.md
+        - api/v04/axis.md
+        - api/v04/transforms.md
+
+plugins:
+- mkdocstrings:
+    handlers:
+        python:
+          options:
+            docstring_style: numpy
+            members_order: source
+            separate_signature: true
+            filters: ["!^_"]
+            docstring_options:
+              ignore_init_summary: true
+            merge_init_into_class: true
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - toc:
+      baselevel: 2
+      toc_depth: 4
+      permalink: "#"
