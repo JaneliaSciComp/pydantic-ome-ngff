@@ -52,11 +52,12 @@ def parse_colors(colors: List[Color] | None) -> List[Color] | None:
 
 def parse_version(version: Literal["0.4"] | None) -> Literal["0.4"] | None:
     if version is None:
-        msg = (
+        _ = (
             f"The `version` attribute is `None`. Version {NGFF_VERSION} of "
-            f"the OME-NGFF spec states that `version` must either be unset or the string {NGFF_VERSION}"
+            f"the OME-NGFF spec states that `version` should either be unset or the string {NGFF_VERSION}"
         )
-        warnings.warn(msg, stacklevel=1)
+        # This goes against a recommendation from the spec, but emitting a warning is annoying. 
+        # leaving this here as a placeholder.
     return version
 
 

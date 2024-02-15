@@ -1,5 +1,6 @@
 from __future__ import annotations
 from enum import Enum
+from typing import Optional
 import warnings
 
 from pydantic import model_validator
@@ -134,16 +135,12 @@ class Axis(StrictVersionedBase):
     name: str
         The name for this axis.
     type: str | None
-        The type for this axis, e.g. `space`.
+        The type for this axis, e.g. "space".
     unit: str | None
         The unit of measure associated with the interval defined by this axis.
     """
 
     _version = version
     name: str
-    type: str | None
-    unit: str | None
-
-    @model_validator(mode="after")
-    def check_type_unit(self):
-        return check_type_unit(self)
+    type: Optional[str] = None
+    unit: Optional[str] = None

@@ -29,14 +29,10 @@ def test_properties_colors_match():
         ImageLabel(colors=[color], properties=[prop])
 
 
-@pytest.mark.parametrize("version", ("0.5", None))
-def test_imagelabel_version(version: str | None) -> None:
-    if version is None:
-        with pytest.warns(UserWarning):
-            _ = ImageLabel(version=version)
-    else:
-        with pytest.raises(ValidationError, match="Input should be '0.4'"):
-            _ = ImageLabel(version=version)
+@pytest.mark.parametrize("version", ("0.5", "0.3"))
+def test_imagelabel_version(version: str) -> None:
+    with pytest.raises(ValidationError, match="Input should be '0.4'"):
+        _ = ImageLabel(version=version)
 
 
 @pytest.mark.parametrize(

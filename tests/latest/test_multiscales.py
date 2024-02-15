@@ -304,7 +304,7 @@ def test_multiscale_group_datasets_exist(
 
     with pytest.raises(
         ValidationError,
-        match="array with that name was found in the items of that group.",
+        match="array with that name was found in the hierarchy.",
     ):
         bad_items = {
             d.path + "x": ArraySpec(
