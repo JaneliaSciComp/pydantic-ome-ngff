@@ -1,5 +1,7 @@
-from pydantic_ome_ngff.v04.label import ImageLabel as ImageLabelV04
+from __future__ import annotations
+
 from pydantic_ome_ngff.latest.base import version
+from pydantic_ome_ngff.v04.label import ImageLabel as ImageLabelV04
 
 
 class ImageLabel(ImageLabelV04):

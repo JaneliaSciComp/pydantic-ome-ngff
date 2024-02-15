@@ -12,12 +12,14 @@ import pydantic_ome_ngff.v04.transforms as tx
 import numpy.typing as npt
 
 VALID_NDIM = (2, 3, 4, 5)
+NUM_TX_MAX = 2
+
 
 def ensure_scale_translation(
     transforms: Sequence[Union[tx.VectorScale, tx.VectorTranslation]],
 ) -> Sequence[Union[tx.VectorScale, tx.VectorTranslation]]:
     """
-    Ensures that the first element is a scale transformation, the second element, 
+    Ensures that the first element is a scale transformation, the second element,
     if present, is a translation transform, and that there are only 1 or 2 transforms.
     """
 
@@ -32,7 +34,7 @@ def ensure_scale_translation(
             f"transform. Got {maybe_scale} instead."
         )
         raise ValueError(msg)
-    if len(transforms) == 2:
+    if len(transforms) == NUM_TX_MAX:
         maybe_trans = transforms[1]
         if (maybe_trans.type) != "translation":
             msg = (
@@ -56,7 +58,7 @@ def ensure_transforms_length(
 class Dataset(StrictBase):
     """
     A single entry in the `multiscales.datasets` list.
-    
+
     See [https://ngff.openmicroscopy.org/0.4/#multiscale-md](https://ngff.openmicroscopy.org/0.4/#multiscale-md) for the specification of this data structure.
 
     Attributes
@@ -100,13 +102,13 @@ def ensure_axis_names(axes: Sequence[Axis]) -> Sequence[Axis]:
 
 def ensure_axis_types(axes: Sequence[Axis]) -> Sequence[Axis]:
     """
-        Ensures that the following conditions are true:
+    Ensures that the following conditions are true:
 
-        - there are only 2 or 3 axes with type `space`
-        - the axes with type `space` are last in the list of axes
-        - there is only 1 axis with type `time`
-        - there is only 1 axis with type `channel`
-        - there is only 1 axis with a type that is not `space`, `time`, or `channel`
+    - there are only 2 or 3 axes with type `space`
+    - the axes with type `space` are last in the list of axes
+    - there is only 1 axis with type `time`
+    - there is only 1 axis with type `channel`
+    - there is only 1 axis with a type that is not `space`, `time`, or `channel`
     """
     axis_types = [ax.type for ax in axes]
     type_census = Counter(axis_types)
@@ -115,7 +117,7 @@ def ensure_axis_types(axes: Sequence[Axis]) -> Sequence[Axis]:
         msg = f"Invalid number of space axes: {num_spaces}. Only 2 or 3 space axes are allowed."
         raise ValueError(msg)
 
-    elif not all(a == "space" for a in axis_types[-num_spaces:]):
+    if not all(a == "space" for a in axis_types[-num_spaces:]):
         msg = f"Space axes must come last. Got axes with order: {axis_types}."
         raise ValueError(msg)
 
@@ -137,7 +139,7 @@ def ensure_axis_types(axes: Sequence[Axis]) -> Sequence[Axis]:
 class MultiscaleMetadata(StrictVersionedBase):
     """
     Multiscale image metadata.
-    
+
     See [https://ngff.openmicroscopy.org/0.4/#multiscale-md](https://ngff.openmicroscopy.org/0.4/#multiscale-md) for the specification of this data structure.
 
     Attributes
@@ -154,7 +156,7 @@ class MultiscaleMetadata(StrictVersionedBase):
     axes: List[Axis]
         A list of `Axis` objects that define the semantics for the different axes of the multiscale image.
     coordinateTransformations: List[tx.Scale, tx.Translation]
-        Coordinate transformations that express a scaling and translation shared by all elements of 
+        Coordinate transformations that express a scaling and translation shared by all elements of
         `datasets`.
     """
 
@@ -165,7 +167,7 @@ class MultiscaleMetadata(StrictVersionedBase):
     metadata: Dict[str, Any] | None = None
     datasets: Annotated[List[Dataset], Field(..., min_length=1)]
     axes: Annotated[
-        List[Axis],
+        list[Axis],
         AfterValidator(ensure_axis_length),
         AfterValidator(ensure_axis_names),
         AfterValidator(ensure_axis_types),
@@ -176,13 +178,13 @@ class MultiscaleMetadata(StrictVersionedBase):
 class GroupAttrs(BaseModel):
     """
     A model of the required attributes of a Zarr group that implements OME-NGFF Multiscales metadata.
-    
-    See [https://ngff.openmicroscopy.org/0.4/#multiscale-md](https://ngff.openmicroscopy.org/0.4/#multiscale-md) for the specification of this data structure.    
-    
+
+    See [https://ngff.openmicroscopy.org/0.4/#multiscale-md](https://ngff.openmicroscopy.org/0.4/#multiscale-md) for the specification of this data structure.
+
     Attributes
     ----------
     multiscales: List[MultiscaleMetadata]
-        A list of `MultiscaleMetadata`. Each element of `multiscales` specifies a multiscale image. 
+        A list of `MultiscaleMetadata`. Each element of `multiscales` specifies a multiscale image.
     """
 
     multiscales: Annotated[List[MultiscaleMetadata], Field(..., min_length=1)]
@@ -191,7 +193,7 @@ class GroupAttrs(BaseModel):
 class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
     """
     A model of a Zarr group that implements OME-NGFF Multiscales metadata.
-    
+
     See [https://ngff.openmicroscopy.org/0.4/#multiscale-md](https://ngff.openmicroscopy.org/0.4/#multiscale-md) for the specification of this data structure.
 
     Attributes
@@ -203,31 +205,40 @@ class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
         The members of this Zarr group. Should be instances of `pydantic_zarr.GroupSpec` or `pydantic_zarr.ArraySpec`.
 
     """
+
     @classmethod
     def from_arrays(
-        cls, 
+        cls,
         arrays: npt.NDArray[Any],
         paths: Sequence[str],
         transforms: Sequence[Sequence[tx.Transform]],
         axes: Sequence[Axis],
-        *, 
-        name: str | None = None, 
-        type: str | None = None, 
+        *,
+        name: str | None = None,
+        type: str | None = None,
         metadata: Dict[str, Any] | None = None,
-        top_level_transforms: List[tx.Transform] | None = None, 
-        **kwargs):
-            """
-            Create a `Group` from a sequence of arrays + spatial metadata.
-            """
-            members = {key: ArraySpec.from_array(arr, **kwargs) for key, arr in zip(paths, arrays, strict=True)}
-            multimeta = MultiscaleMetadata(
-                name=name, 
-                type=type,
-                metadata=metadata,
-                axes=axes,
-                datasets=[Dataset(path=path, coordinateTransformations=txs) for path, txs in zip(paths, transforms, strict=True)],
-                coordinateTransformations=top_level_transforms)
-            return cls(members=members, attributes=multimeta)
+        top_level_transforms: List[tx.Transform] | None = None,
+        **kwargs,
+    ):
+        """
+        Create a `Group` from a sequence of arrays + spatial metadata.
+        """
+        members = {
+            key: ArraySpec.from_array(arr, **kwargs)
+            for key, arr in zip(paths, arrays, strict=True)
+        }
+        multimeta = MultiscaleMetadata(
+            name=name,
+            type=type,
+            metadata=metadata,
+            axes=axes,
+            datasets=[
+                Dataset(path=path, coordinateTransformations=txs)
+                for path, txs in zip(paths, transforms, strict=True)
+            ],
+            coordinateTransformations=top_level_transforms,
+        )
+        return cls(members=members, attributes=multimeta)
 
     @model_validator(mode="after")
     def check_arrays_exist(self) -> "Group":

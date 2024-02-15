@@ -4,6 +4,8 @@ from pydantic import ValidationError
 import pytest
 import jsonschema as jsc
 from pydantic_zarr.v2 import ArraySpec
+
+from pydantic_ome_ngff.latest.axis import Axis
 from pydantic_ome_ngff.latest.multiscales import (
     MultiscaleMetadata,
     GroupAttrs,
@@ -16,7 +18,6 @@ from pydantic_ome_ngff.latest.transforms import (
     VectorScale,
     VectorTranslation,
 )
-from pydantic_ome_ngff.latest.axis import Axis
 from tests.conftest import fetch_schemas
 
 
@@ -126,10 +127,10 @@ def test_multiscale_unique_axis_names() -> None:
 
 @pytest.mark.parametrize(
     "axis_types",
-    (
+    [
         ("space", "space", "channel"),
         ("space", "channel", "space", "channel"),
-    ),
+    ],
 )
 def test_multiscale_space_axes_last(axis_types: List[Optional[str]]) -> None:
     units_map = {"space": "meter", "time": "second"}
@@ -179,7 +180,7 @@ def test_multiscale_space_axes_last(axis_types: List[Optional[str]]) -> None:
         )
 
 
-@pytest.mark.parametrize("num_axes", (0, 1, 6, 7))
+@pytest.mark.parametrize("num_axes", [0, 1, 6, 7])
 def test_multiscale_axis_length(num_axes: int) -> None:
     rank = num_axes
     axes = [Axis(name=str(idx), type="space", unit="meter") for idx in range(num_axes)]
@@ -232,7 +233,7 @@ def test_coordinate_transforms_invalid_ndims() -> None:
 
 @pytest.mark.parametrize(
     "transforms",
-    (
+    [
         [
             VectorScale(scale=(1, 1, 1)),
             VectorTranslation(translation=(1, 1, 1)),
@@ -242,7 +243,7 @@ def test_coordinate_transforms_invalid_ndims() -> None:
             VectorScale(scale=(1, 1, 1)),
         ]
         * 5,
-    ),
+    ],
 )
 def test_coordinate_transforms_invalid_length(
     transforms: List[Transform],
@@ -253,7 +254,7 @@ def test_coordinate_transforms_invalid_length(
 
 @pytest.mark.parametrize(
     "transforms",
-    (
+    [
         [
             VectorTranslation(translation=(1, 1, 1)),
         ]
@@ -262,7 +263,7 @@ def test_coordinate_transforms_invalid_length(
             VectorTranslation(translation=(1, 1, 1)),
             VectorScale(scale=(1, 1, 1)),
         ],
-    ),
+    ],
 )
 def test_coordinate_transforms_invalid_first_element(
     transforms: Tuple[Transform, Transform],
