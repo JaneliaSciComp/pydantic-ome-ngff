@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Tuple
+from typing import Dict, Tuple
 from pydantic import ValidationError
 import pytest
 import jsonschema as jsc
@@ -316,7 +316,7 @@ def test_multiscale_group_datasets_exist(
 
     with pytest.raises(
         ValidationError,
-        match="array with that name was found in the items of that group.",
+        match="array with that name was found in the hierarchy",
     ):
         bad_items = {
             d.path + "x": ArraySpec(
@@ -375,3 +375,59 @@ def test_multiscale_group_datasets_rank(default_multiscale: MultiscaleMetadata) 
             for d in default_multiscale.datasets
         }
         Group(attributes=group_attrs, members=bad_items)
+
+
+import numpy as np
+from itertools import accumulate
+import operator
+@pytest.mark.parametrize('name', [None, "foo"])
+@pytest.mark.parametrize('type', [None, "foo"])
+@pytest.mark.parametrize('path_pattern', ['{0}', 's{0}'])
+@pytest.mark.parametrize('metadata', [None, {'foo': 10}])
+@pytest.mark.parametrize('ndim', [2,3,4,5])
+def test_from_arrays(
+    name: str | None, 
+    type: str | None, 
+    path_pattern: str,
+    metadata: Dict[str, int] | str | None, 
+    ndim: int):
+    arrays = [np.arange(x ** ndim).reshape((x,) * ndim) for  x in [3,2,1]]
+    paths = [path_pattern.format(idx) for idx in range(len(arrays))]
+    scales = [(2 ** idx, ) * ndim for idx in range(len(arrays))]
+    translations = [(t,) * ndim for t in accumulate([(2 ** (idx - 1)) for idx in range(len(arrays))], operator.add)]
+    
+    group_scale = (1,) * ndim
+    group_translation = (0,) * ndim
+
+
+    all_axes = [Axis(name="x", type="space",), Axis(name="y", type="space"), Axis(name="z", type="space"), Axis(name="t", type="time"), Axis(name="c", type="barf")]
+    # spatial axes have to come last
+    if ndim in (2, 3):
+        axes = all_axes[:ndim]
+    else:
+        axes = [*all_axes[4:], *all_axes[:3]]
+    
+    group = Group.from_arrays(
+        paths=paths,
+        axes=axes,
+        arrays=arrays,
+        scales=scales,
+        translations=translations,
+        name=name,
+        type=type,
+        metadata=metadata, 
+        group_scale=group_scale,
+        group_translation=group_translation
+    )
+
+    assert group.attributes.multiscales[0].name == name
+    assert group.attributes.multiscales[0].type == type
+    assert group.attributes.multiscales[0].metadata == metadata
+    assert group.attributes.multiscales[0].coordinateTransformations == [VectorScale(scale=group_scale), VectorTranslation(translation=group_translation)]
+    assert group.attributes.multiscales[0].axes == axes
+    for idx, array in enumerate(arrays):
+        assert array.shape == group.members[paths[idx]].shape
+        assert array.dtype == group.members[paths[idx]].dtype
+        assert group.attributes.multiscales[0].datasets[idx].coordinateTransformations == [VectorScale(scale=scales[idx]), VectorTranslation(translation=translations[idx])]
+
+

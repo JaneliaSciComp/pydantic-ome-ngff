@@ -1,16 +1,15 @@
 from __future__ import annotations
 from collections import Counter
 from typing import Annotated, Any, Dict, List, Sequence, Union, cast
-
 from pydantic import AfterValidator, BaseModel, Field, model_validator
 from pydantic_zarr.v2 import GroupSpec, ArraySpec
-from pydantic_ome_ngff.utils import duplicates
+from pydantic_ome_ngff.utils import ArrayLike, ChunkedArrayLike, duplicates, flatten_node
 from pydantic_ome_ngff.base import StrictBase, StrictVersionedBase
 from pydantic_ome_ngff.v04.base import version
 from pydantic_ome_ngff.v04.axis import Axis, AxisType
 import pydantic_ome_ngff.v04.transforms as tx
-import numpy.typing as npt
-
+import zarr
+from zarr.errors import ArrayNotFoundError, ContainsGroupError
 VALID_NDIM = (2, 3, 4, 5)
 NUM_TX_MAX = 2
 
@@ -77,6 +76,18 @@ class Dataset(StrictBase):
         AfterValidator(ensure_scale_translation),
         AfterValidator(tx.ensure_dimensionality),
     ]
+
+
+def create_dataset(
+        path: str, 
+        scale: Sequence[int | float], 
+        translation: Sequence[int | float]) -> Dataset:
+    """
+    Create a `Dataset` from a path, a scale, and a translation.
+    """
+    return Dataset(
+        path=path,
+        coordinateTransformations=[tx.VectorScale(scale=scale), tx.VectorTranslation(translation=translation)])
 
 
 def ensure_axis_length(axes: Sequence[Axis]) -> Sequence[Axis]:
@@ -207,22 +218,66 @@ class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
     """
 
     @classmethod
+    def from_zarr(cls, node: zarr.Group) -> Group:
+        guess = GroupSpec.from_zarr(node)
+        
+        try:
+            multi_meta_maybe = guess.attributes['multiscales']
+        except KeyError as e:
+            msg = (f"Failed to find mandatory `multiscales` key in the attributes of the zarr group at ",
+                  f"{node.store.path}/{node.path}")
+            raise ValueError(msg) from e
+        
+        multi_meta = GroupAttrs(multiscales=multi_meta_maybe)
+
+        for multiscale in multi_meta.multiscales:
+            for dataset in multiscale.datasets:
+                array_path = '/'.join([node.path, dataset.path])
+                try:
+                    array = zarr.open_array(
+                        store=node.store, 
+                        path=array_path,
+                        mode='r')
+                    array_spec = ArraySpec.from_zarr(array)
+                except ArrayNotFoundError as e:
+                    raise ValueError(f"Expected to find an array at {array_path}, but no array was found there.")
+                except ContainsGroupError as e:
+
+
+        return guess
+
+    @classmethod
     def from_arrays(
         cls,
-        arrays: npt.NDArray[Any],
         paths: Sequence[str],
-        transforms: Sequence[Sequence[tx.Transform]],
         axes: Sequence[Axis],
+        arrays: Sequence[ArrayLike | ChunkedArrayLike],
+        scales: Sequence[int | float],
+        translations: Sequence[int | float],
         *,
         name: str | None = None,
         type: str | None = None,
         metadata: Dict[str, Any] | None = None,
-        top_level_transforms: List[tx.Transform] | None = None,
+        group_scale: tx.Scale | None = None,
+        group_translation: tx.Translation | None = None,
         **kwargs,
     ):
         """
-        Create a `Group` from a sequence of arrays + spatial metadata.
+        Create a `Group` from a sequence of arrays and spatial metadata.
+
+        Parameters
+        ----------
+        paths: Sequence[str]
+            The paths to the arrays.
         """
+        
+        group_transforms = list(filter(lambda v: v is not None, [group_scale, group_translation]))
+        for idx, value in enumerate(group_transforms):
+            if idx == 0:
+                group_transforms[idx] = tx.VectorScale(scale=value)
+            if idx == 1:
+                group_transforms[idx] = tx.VectorTranslation(translation=value) 
+
         members = {
             key: ArraySpec.from_array(arr, **kwargs)
             for key, arr in zip(paths, arrays, strict=True)
@@ -233,12 +288,12 @@ class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
             metadata=metadata,
             axes=axes,
             datasets=[
-                Dataset(path=path, coordinateTransformations=txs)
-                for path, txs in zip(paths, transforms, strict=True)
+                create_dataset(path=path, scale=scale, translation=translation)
+                for path, scale, translation in zip(paths, scales, translations, strict=True)
             ],
-            coordinateTransformations=top_level_transforms,
+            coordinateTransformations=group_transforms,
         )
-        return cls(members=members, attributes=multimeta)
+        return cls(members=members, attributes=GroupAttrs(multiscales=[multimeta]))
 
     @model_validator(mode="after")
     def check_arrays_exist(self) -> "Group":
@@ -249,17 +304,20 @@ class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
         allowed by the spec. Adding tree-flattening here or in pydantic-zarr can fix this.
         """
         attrs = self.attributes
-        array_items: dict[str, dict[str, ArraySpec]] = {
-            k: v for k, v in self.members.items() if isinstance(v, ArraySpec)
-        }
-
+        flattened = flatten_node(self)
+        
         for multiscale in attrs.multiscales:
             for dataset in multiscale.datasets:
-                if (dpath := dataset.path) not in array_items:
+                dpath = '/' + dataset.path
+                if dpath in flattened:
+                    if not isinstance(flattened[dpath], ArraySpec):
+                        msg = f'The node at {dpath} should be an array, found {type(flattened[dpath])} instead'
+                        raise ValueError(msg)
+                else:
                     msg = (
-                        f"Dataset {dpath} was specified in multiscale metadata, but no "
-                        "array with that name was found in the items of that group. "
-                        "All arrays referenced in multiscale metadata must be items of the group."
+                        f"Dataset {dataset.path} was specified in multiscale metadata, but no "
+                        "array with that name was found in the hierarchy. "
+                        "All arrays referenced in multiscale metadata must be contained in the group."
                     )
                     raise ValueError(msg)
         return self
