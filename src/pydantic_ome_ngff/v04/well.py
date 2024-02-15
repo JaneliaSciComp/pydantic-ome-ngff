@@ -1,17 +1,17 @@
 from __future__ import annotations
-from typing import List, Optional, Union
+from typing import List, Union
 
 from pydantic import BaseModel, ValidationError, field_validator
-from pydantic_ome_ngff.base import VersionedBase
+from pydantic_zarr.v2 import ArraySpec, GroupSpec
 
+from pydantic_ome_ngff.base import VersionedBase
 from pydantic_ome_ngff.v04.base import version
 import pydantic_ome_ngff.v04.multiscales as multiscales
-from pydantic_zarr.v2 import GroupSpec, ArraySpec
 
 
 class Image(BaseModel):
     path: str
-    acquisition: Optional[int]
+    acquisition: int | None
 
 
 class WellMetadata(VersionedBase):

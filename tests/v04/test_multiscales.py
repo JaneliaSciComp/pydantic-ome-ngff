@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, Optional, Tuple
+from typing import Tuple
 from pydantic import ValidationError
 import pytest
 import jsonschema as jsc
@@ -127,12 +127,12 @@ def test_multiscale_unique_axis_names() -> None:
 
 @pytest.mark.parametrize(
     "axis_types",
-    (
+    [
         ("space", "space", "channel"),
         ("space", "channel", "space", "channel"),
-    ),
+    ],
 )
-def test_multiscale_space_axes_last(axis_types: List[Optional[str]]) -> None:
+def test_multiscale_space_axes_last(axis_types: list[str | None]) -> None:
     units_map = {"space": "meter", "time": "second"}
     axes = [
         Axis(name=str(idx), type=t, unit=units_map.get(t, None))
@@ -175,7 +175,7 @@ def test_multiscale_space_axes_last(axis_types: List[Optional[str]]) -> None:
         )
 
 
-@pytest.mark.parametrize("num_axes", (0, 1, 6, 7))
+@pytest.mark.parametrize("num_axes", [0, 1, 6, 7])
 def test_multiscale_axis_length(num_axes: int) -> None:
     rank = num_axes
     axes = [Axis(name=str(idx), type="space", unit="meter") for idx in range(num_axes)]
@@ -221,14 +221,14 @@ def test_coordinate_transforms_invalid_ndims() -> None:
     ]
     with pytest.raises(
         ValidationError,
-        match="The transforms have inconsistent dimensionality.",  # noqa
+        match="The transforms have inconsistent dimensionality.",
     ):
         Dataset(path="foo", coordinateTransformations=tforms)
 
 
 @pytest.mark.parametrize(
     "transforms",
-    (
+    [
         [
             VectorScale(scale=(1, 1, 1)),
             VectorTranslation(translation=(1, 1, 1)),
@@ -238,10 +238,10 @@ def test_coordinate_transforms_invalid_ndims() -> None:
             VectorScale(scale=(1, 1, 1)),
         ]
         * 5,
-    ),
+    ],
 )
 def test_coordinate_transforms_invalid_length(
-    transforms: List[Transform],
+    transforms: list[Transform],
 ) -> None:
     with pytest.raises(ValidationError, match="expected 1 or 2"):
         Dataset(path="foo", coordinateTransformations=transforms)
@@ -249,7 +249,7 @@ def test_coordinate_transforms_invalid_length(
 
 @pytest.mark.parametrize(
     "transforms",
-    (
+    [
         [
             VectorTranslation(translation=(1, 1, 1)),
         ]
@@ -258,7 +258,7 @@ def test_coordinate_transforms_invalid_length(
             VectorTranslation(translation=(1, 1, 1)),
             VectorScale(scale=(1, 1, 1)),
         ],
-    ),
+    ],
 )
 def test_coordinate_transforms_invalid_first_element(
     transforms: Tuple[Transform, Transform],
@@ -301,6 +301,13 @@ def test_multiscale_group_datasets_exist(
     }
     Group(attributes=group_attrs, members=good_items)
 
+    bad_items = {
+        d.path + "x": ArraySpec(
+            shape=(1, 1, 1, 1), dtype="uint8", chunks=(1, 1, 1, 1), attributes={}
+        )
+        for d in default_multiscale.datasets
+    }
+
     with pytest.raises(
         ValidationError,
         match="array with that name was found in the items of that group.",
@@ -324,6 +331,17 @@ def test_multiscale_group_datasets_rank(default_multiscale: MultiscaleMetadata) 
     }
     Group(attributes=group_attrs, members=good_items)
 
+    # arrays with varying rank
+    bad_items = {
+        d.path: ArraySpec(
+            shape=(1,) * (idx + 1),
+            dtype="uint8",
+            chunks=(1,) * (idx + 1),
+            attributes={},
+        )
+        for idx, d in enumerate(default_multiscale.datasets)
+    }
+
     with pytest.raises(
         ValidationError, match="All arrays must have the same dimensionality."
     ):
@@ -339,6 +357,11 @@ def test_multiscale_group_datasets_rank(default_multiscale: MultiscaleMetadata) 
         }
         Group(attributes=group_attrs, members=bad_items)
 
+    # arrays with rank that doesn't match the transform
+    bad_items = {
+        d.path: ArraySpec(shape=(1,), dtype="uint8", chunks=(1,), attributes={})
+        for d in default_multiscale.datasets
+    }
     with pytest.raises(ValidationError, match="Transform dimensionality"):
         # arrays with rank that doesn't match the transform
         bad_items = {

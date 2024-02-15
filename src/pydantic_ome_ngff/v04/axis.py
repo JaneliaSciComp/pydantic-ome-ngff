@@ -1,17 +1,18 @@
 from __future__ import annotations
+from enum import Enum
+import warnings
 
 from pydantic import model_validator
 
 from pydantic_ome_ngff.base import StrictVersionedBase
 from pydantic_ome_ngff.v04.base import version
-import warnings
-from enum import Enum
 
 
 class AxisType(str, Enum):
     """
     String enum representing the three axis types (`space`, `time`, `channel`) defined in the specification.
     """
+
     space = "space"
     time = "time"
     channel = "channel"
@@ -83,19 +84,19 @@ def check_type_unit(model: Axis) -> Axis:
     unit = model.unit
 
     if typ == AxisType.space:
-         if unit not in [e.value for e in SpaceUnit]:
+        if unit not in [e.value for e in SpaceUnit]:
             msg = (
                 f"Unit '{unit}' is not recognized as a standard unit "
                 f"for an axis with type '{typ}'."
             )
-            warnings.warn(msg)
+            warnings.warn(msg, stacklevel=1)
     elif typ == AxisType.time:
         if unit not in [e.value for e in TimeUnit]:
             msg = (
                 f"Unit '{unit}' is not recognized as a standard unit "
                 f"for an axis with type '{typ}'."
             )
-            warnings.warn(msg)
+            warnings.warn(msg, stacklevel=1)
     elif typ == AxisType.channel:
         pass
     elif typ is None:
@@ -103,21 +104,21 @@ def check_type_unit(model: Axis) -> Axis:
             f"The `type` field of this axis was set to `None`. Version {model._version} of the OME-NGFF spec states "
             "that the 'type' field of an axis should be set to a string."
         )
-        warnings.warn(msg, UserWarning)
+        warnings.warn(msg, stacklevel=1)
     else:
         msg = (
             f"Unknown axis type '{typ}'. Version {model._version} of the OME-NGFF "
             " spec states that the 'type' field of an axis should be one of "
             f"{AxisType._member_names_}."
         )
-        warnings.warn(msg)
+        warnings.warn(msg, stacklevel=1)
 
     if unit is None:
         msg = (
             f"The `unit` field of this axis was set to `None`. Version {model._version} of the OME-NGFF spec states "
             "that the `unit` field of an axis should be set to a string."
         )
-        warnings.warn(msg)
+        warnings.warn(msg, stacklevel=1)
     return model
 
 

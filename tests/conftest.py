@@ -1,8 +1,9 @@
-from typing import Tuple, Any
+from typing import Any
+
 import requests
 
 
-def fetch_schemas(version: str, schema_name: str) -> Tuple[Any, Any]:
+def fetch_schemas(version: str, schema_name: str) -> tuple[Any, Any]:
     """
     Get the relaxed and strict schemas for a given version of the spec.
     """

@@ -1,5 +1,5 @@
+from __future__ import annotations
 from typing import Literal
-
 from pydantic_ome_ngff.latest.base import version
 import pydantic_ome_ngff.v04.multiscales as msv04
 

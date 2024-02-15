@@ -1,8 +1,8 @@
 from collections import Counter
-from typing import Dict, Iterable, Hashable
+from collections.abc import Hashable, Iterable
 
 
-def duplicates(values: Iterable[Hashable]) -> Dict[Hashable, int]:
+def duplicates(values: Iterable[Hashable]) -> dict[Hashable, int]:
     """
     Takes a sequence of hashable elements and returns a dict where the keys are the
     elements of the input that occurred at least once, and the values are the

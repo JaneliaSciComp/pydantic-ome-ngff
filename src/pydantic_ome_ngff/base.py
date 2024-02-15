@@ -6,8 +6,6 @@ class StrictBase(BaseModel, extra="forbid"):
     A pydantic basemodel that refuses extra fields.
     """
 
-    ...
-
 
 class VersionedBase(BaseModel):
     """
@@ -21,5 +19,3 @@ class StrictVersionedBase(VersionedBase, StrictBase):
     """
     An internally versioned pydantic basemodel that refuses extra fields.
     """
-
-    ...

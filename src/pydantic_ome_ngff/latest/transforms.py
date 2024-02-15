@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Union
 import pydantic_ome_ngff.v04.transforms as tx
 

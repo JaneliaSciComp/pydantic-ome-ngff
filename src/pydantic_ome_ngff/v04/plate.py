@@ -1,10 +1,11 @@
 from __future__ import annotations
-from typing import List, Optional
+from typing import List
 
 from pydantic import BaseModel, PositiveInt, ValidationError, field_validator
+from pydantic_zarr.v2 import ArraySpec, GroupSpec
+
 from pydantic_ome_ngff.base import VersionedBase
 from pydantic_ome_ngff.v04.base import version
-from pydantic_zarr.v2 import GroupSpec, ArraySpec
 from typing import Union
 
 import pydantic_ome_ngff.v04.well as well
@@ -12,7 +13,7 @@ import pydantic_ome_ngff.v04.well as well
 
 class Acquisition(BaseModel):
     id: PositiveInt
-    name: Optional[str] = None
+    name: str | None = None
     maximumfieldcount: PositiveInt
 
 
