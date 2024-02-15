@@ -9,12 +9,16 @@ class Identity(tx.Identity):
     See https://ngff.openmicroscopy.org/latest/#trafo-md
     """
 
+    ...
+
 
 class PathScale(tx.PathScale):
     """ "
     A coordinateTransform with at "path" field.
     See https://ngff.openmicroscopy.org/latest/#trafo-md
     """
+
+    ...
 
 
 class PathTranslation(tx.PathTranslation):
@@ -23,6 +27,8 @@ class PathTranslation(tx.PathTranslation):
     See https://ngff.openmicroscopy.org/latest/#trafo-md
     """
 
+    ...
+
 
 class VectorTranslation(tx.VectorTranslation):
     """
@@ -30,12 +36,16 @@ class VectorTranslation(tx.VectorTranslation):
     See https://ngff.openmicroscopy.org/latest/#trafo-md
     """
 
+    ...
+
 
 class VectorScale(tx.VectorScale):
     """
     A scale transform with a `scale` field that is a vector.
     See https://ngff.openmicroscopy.org/latest/#trafo-md
     """
+
+    ...
 
 
 Scale = Union[VectorScale, PathScale]

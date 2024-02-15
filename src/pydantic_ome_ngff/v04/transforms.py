@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal
+from typing import Literal, Sequence
 
 from pydantic_ome_ngff.base import StrictBase
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
 
 
 class Identity(StrictBase):
