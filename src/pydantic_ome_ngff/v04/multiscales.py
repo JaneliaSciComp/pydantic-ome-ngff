@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from collections import Counter
 from typing import Annotated, Any, Dict, List, Self, Sequence, Union, cast
 from pydantic import AfterValidator, BaseModel, Field, model_validator

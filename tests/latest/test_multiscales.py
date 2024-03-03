@@ -352,3 +352,50 @@ def test_multiscale_group_datasets_rank(multi_meta: MultiscaleMetadata) -> None:
             for d in multi_meta.datasets
         }
         Group(attributes=group_attrs, members=bad_items)
+
+
+@pytest.fixture
+def default_multiscale() -> MultiscaleMetadata:
+    axes = [
+        Axis(name="c", type="channel", unit=None),
+        Axis(name="z", type="space", unit="meter"),
+        Axis(name="x", type="space", unit="meter"),
+        Axis(name="y", type="space", unit="meter"),
+    ]
+    rank = len(axes)
+    num_datasets = 3
+    datasets = [
+        Dataset(
+            path=f"path{idx}",
+            coordinateTransformations=(
+                VectorScale(
+                    scale=[
+                        1,
+                    ]
+                    * rank
+                ),
+                VectorTranslation(
+                    translation=[
+                        0,
+                    ]
+                    * rank
+                ),
+            ),
+        )
+        for idx in range(num_datasets)
+    ]
+
+    multi = MultiscaleMetadata(
+        name="foo",
+        axes=axes,
+        datasets=datasets,
+        coordinateTransformations=(
+            VectorScale(
+                scale=[
+                    1,
+                ]
+                * rank
+            ),
+        ),
+    )
+    return multi
