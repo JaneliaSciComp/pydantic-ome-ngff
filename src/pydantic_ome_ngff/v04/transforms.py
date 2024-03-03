@@ -115,16 +115,24 @@ def ndim(
 
 
 def scale_translation(
-    scale: Sequence[float], translation: Sequence[float]
-) -> tuple[Scale, Translation]:
+    scale: Sequence[float], translation: Sequence[float] | None
+) -> tuple[Scale] | tuple[Scale, Translation]:
     """
-    Create a `VectorScale` and a `VectorTranslation` from a scale and a translation parameter.
+    Create a `VectorScale` and, optionally, a `VectorTranslation` from a scale and a translation
+    parameter.
     """
     len_scale = len(scale)
-    len_translation = len(translation)
+
     if len_scale < 1:
         msg = "Not enough values in scale. Got 0, expected at least 1."
         raise ValueError(msg)
+
+    vec_scale = VectorScale(scale=scale)
+
+    if translation is None:
+        return (vec_scale,)
+
+    len_translation = len(translation)
     if len_translation < 1:
         msg = "Not enough values in `translation`. Got 0, expected at least 1."
         raise ValueError(msg)
@@ -135,7 +143,9 @@ def scale_translation(
         )
         raise ValueError(msg)
 
-    return (VectorScale(scale=scale), VectorTranslation(translation=translation))
+    vec_trans = VectorTranslation(translation=translation)
+
+    return (vec_scale, vec_trans)
 
 
 Scale = VectorScale | PathScale

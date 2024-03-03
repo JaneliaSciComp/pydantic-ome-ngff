@@ -1,14 +1,12 @@
 from __future__ import annotations
 from collections import Counter
-from typing import Annotated, Any, Dict, List, Sequence, Union, cast
+from typing import Annotated, Any, Dict, List, Self, Sequence, Union, cast
 from pydantic import AfterValidator, BaseModel, Field, model_validator
 from pydantic_zarr.v2 import GroupSpec, ArraySpec
 from pydantic_ome_ngff.utils import (
     ArrayLike,
     ChunkedArrayLike,
     duplicates,
-    flatten_node,
-    resolve_groups,
 )
 from pydantic_ome_ngff.base import StrictBase, StrictVersionedBase
 from pydantic_ome_ngff.v04.base import version
@@ -78,8 +76,7 @@ class Dataset(StrictBase):
 
     path: str
     coordinateTransformations: Annotated[
-        List[tx.Scale | tx.Translation],
-        AfterValidator(ensure_transforms_length),
+        tuple[tx.Scale] | tuple[tx.Scale, tx.Translation],
         AfterValidator(ensure_scale_translation),
         AfterValidator(tx.ensure_dimensionality),
     ]
@@ -193,7 +190,9 @@ class MultiscaleMetadata(StrictVersionedBase):
         AfterValidator(ensure_axis_names),
         AfterValidator(ensure_axis_types),
     ]
-    coordinateTransformations: List[tx.Scale | tx.Translation] | None = None
+    coordinateTransformations: tuple[tx.Scale] | tuple[
+        tx.Scale, tx.Translation
+    ] | None = None
 
 
 class GroupAttrs(BaseModel):
@@ -229,6 +228,22 @@ class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
 
     @classmethod
     def from_zarr(cls, node: zarr.Group) -> Group:
+        """
+        Create an instance of `Group` from a `node`, a `zarr.Group`. This method infers the
+        discovers Zarr arrays in the hierarchy rooted at `node` by inspecting the OME-NGFF
+        multiscales metadata.
+
+        Paramters
+        ---------
+        node: zarr.Group
+            A Zarr group that has valid OME-NGFF multiscale metadata.
+
+        Returns
+        -------
+        Group
+            A model of the zarr Group.
+        """
+        # on unlistable storage backends, the members of this group will be {}
         guess = GroupSpec.from_zarr(node)
 
         try:
@@ -241,37 +256,32 @@ class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
             raise ValueError(msg) from e
 
         multi_meta = GroupAttrs(multiscales=multi_meta_maybe)
+        members_tree_flat = {}
         for multiscale in multi_meta.multiscales:
-            members = {}
             for dataset in multiscale.datasets:
                 array_path = "/".join([node.path, dataset.path])
                 try:
                     array = zarr.open_array(store=node.store, path=array_path, mode="r")
                     array_spec = ArraySpec.from_zarr(array)
-                except ArrayNotFoundError as e:
+                except ArrayNotFoundError:
                     msg = (
                         f"Expected to find an array at {array_path}, ",
                         "but no array was found there.",
                     )
-                    raise ArrayNotFoundError(msg) from e
-                except ContainsGroupError as e:
+                    raise ArrayNotFoundError(msg)
+                except ContainsGroupError:
                     msg = (
                         f"Expected to find an array at {array_path}, ",
                         "but a group was found there instead.",
                     )
-                    raise ContainsGroupError(msg) from e
-                dataset_path_parts = dataset.path.split("/")
-                if len(dataset_path_parts) == 1:
-                    members[dataset.path] = array_spec
-                else:
-                    # this will not be correct for multiple arrays in the same deep group
-                    members[dataset.path] = resolve_groups(
-                        "/".join(dataset_path_parts[1:]), array_spec
-                    )
+                    raise ContainsGroupError(msg)
+                members_tree_flat["/" + dataset.path] = array_spec
+        members_normalized = GroupSpec.from_flat(members_tree_flat)
 
-            guess = guess.model_copy(update={**guess.members, **members})
-
-        return guess
+        guess_inferred_members = guess.model_copy(
+            update={"members": {**guess.members, **members_normalized.members}}
+        )
+        return guess_inferred_members
 
     @classmethod
     def from_arrays(
@@ -279,16 +289,16 @@ class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
         paths: Sequence[str],
         axes: Sequence[Axis],
         arrays: Sequence[ArrayLike | ChunkedArrayLike],
-        scales: Sequence[int | float],
-        translations: Sequence[int | float],
+        scales: Sequence[Sequence[int | float]],
+        translations: Sequence[Sequence[int | float]],
         *,
         name: str | None = None,
         type: str | None = None,
         metadata: Dict[str, Any] | None = None,
-        group_scale: tx.Scale | None = None,
-        group_translation: tx.Translation | None = None,
-        **kwargs,
-    ):
+        group_scale: Sequence[int | float] | None = None,
+        group_translation: Sequence[int | float] | None = None,
+        **kwargs: Any,
+    ) -> Self:
         """
         Create a `Group` from a sequence of arrays and spatial metadata.
 
@@ -297,25 +307,20 @@ class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
         paths: Sequence[str]
             The paths to the arrays.
         """
+        group_transforms = None
+        if group_scale is not None:
+            group_transforms = tx.scale_translation(group_scale, group_translation)
 
-        group_transforms = list(
-            filter(lambda v: v is not None, [group_scale, group_translation])
-        )
-        for idx, value in enumerate(group_transforms):
-            if idx == 0:
-                group_transforms[idx] = tx.VectorScale(scale=value)
-            if idx == 1:
-                group_transforms[idx] = tx.VectorTranslation(translation=value)
-
-        members = {
-            key: ArraySpec.from_array(arr, **kwargs)
+        members_flat = {
+            "/" + key.lstrip("/"): ArraySpec.from_array(arr, **kwargs)
             for key, arr in zip(paths, arrays, strict=True)
         }
+
         multimeta = MultiscaleMetadata(
             name=name,
             type=type,
             metadata=metadata,
-            axes=axes,
+            axes=list(axes),
             datasets=[
                 create_dataset(path=path, scale=scale, translation=translation)
                 for path, scale, translation in zip(
@@ -324,7 +329,10 @@ class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
             ],
             coordinateTransformations=group_transforms,
         )
-        return cls(members=members, attributes=GroupAttrs(multiscales=[multimeta]))
+        return cls(
+            members=GroupSpec.from_flat(members_flat).members,
+            attributes=GroupAttrs(multiscales=[multimeta]),
+        )
 
     @model_validator(mode="after")
     def check_arrays_exist(self) -> "Group":
@@ -335,14 +343,17 @@ class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
         allowed by the spec. Adding tree-flattening here or in pydantic-zarr can fix this.
         """
         attrs = self.attributes
-        flattened = flatten_node(self)
+        flattened = self.to_flat()
 
         for multiscale in attrs.multiscales:
             for dataset in multiscale.datasets:
-                dpath = "/" + dataset.path
+                dpath = "/" + dataset.path.lstrip("/")
                 if dpath in flattened:
                     if not isinstance(flattened[dpath], ArraySpec):
-                        msg = f"The node at {dpath} should be an array, found {type(flattened[dpath])} instead"
+                        msg = (
+                            f"The node at {dpath} should be an array, "
+                            f"found {type(flattened[dpath])} instead"
+                        )
                         raise ValueError(msg)
                 else:
                     msg = (
@@ -357,14 +368,26 @@ class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
     def check_array_ndim(self) -> "Group":
         """
         Check that all the arrays referenced by the `multiscales` metadata have the same
-        dimensionality, and that this dimensionality is consistent with the `coordinateTransformations` metadata.
+        dimensionality, and that this dimensionality is consistent with the
+        `coordinateTransformations` metadata.
         """
-        attrs = self.attributes
-        array_items: dict[str, ArraySpec] = {
-            k: v for k, v in self.members.items() if isinstance(v, ArraySpec)
-        }
+        multimeta = self.attributes.multiscales
 
-        ndims = tuple(len(a.shape) for a in array_items.values())
+        flat_self = self.to_flat()
+        ndims = []
+        # get shapes from all the arrays referenced in `multiscales`
+        for multiscale in multimeta:
+            for dataset in multiscale.datasets:
+                node = flat_self["/" + dataset.path.lstrip("/")]
+                if isinstance(node, ArraySpec):
+                    ndims.append(len(flat_self["/" + dataset.path.lstrip("/")].shape))
+                else:
+                    msg = (
+                        f"Expected an instance of ArraySpec at {dataset.path}, "
+                        f"got {type(node)} instead"
+                    )
+                    raise TypeError(msg)
+
         if len(set(ndims)) > 1:
             msg = (
                 "All arrays must have the same dimensionality. "
@@ -373,7 +396,7 @@ class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
             raise ValueError(msg)
 
         # check that each transform has compatible rank
-        for multiscale in attrs.multiscales:
+        for multiscale in multimeta:
             tforms = []
             if multiscale.coordinateTransformations is not None:
                 tforms.extend(multiscale.coordinateTransformations)
