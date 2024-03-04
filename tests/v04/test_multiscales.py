@@ -396,9 +396,6 @@ def test_from_arrays(
         )
     ]
 
-    group_scale = (1,) * ndim
-    group_translation = (0,) * ndim
-
     all_axes = [
         Axis(
             name="x",
@@ -424,8 +421,6 @@ def test_from_arrays(
         name=name,
         type=type,
         metadata=metadata,
-        group_scale=group_scale,
-        group_translation=group_translation,
     )
 
     group_flat = group.to_flat()
@@ -433,10 +428,7 @@ def test_from_arrays(
     assert group.attributes.multiscales[0].name == name
     assert group.attributes.multiscales[0].type == type
     assert group.attributes.multiscales[0].metadata == metadata
-    assert group.attributes.multiscales[0].coordinateTransformations == (
-        VectorScale(scale=group_scale),
-        VectorTranslation(translation=group_translation),
-    )
+    assert group.attributes.multiscales[0].coordinateTransformations is None
     assert group.attributes.multiscales[0].axes == axes
     for idx, array in enumerate(arrays):
         assert array.shape == group_flat["/" + paths[idx]].shape

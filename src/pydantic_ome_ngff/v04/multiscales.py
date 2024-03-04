@@ -300,22 +300,31 @@ class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
         name: str | None = None,
         type: str | None = None,
         metadata: Dict[str, Any] | None = None,
-        group_scale: Sequence[int | float] | None = None,
-        group_translation: Sequence[int | float] | None = None,
         **kwargs: Any,
     ) -> Self:
         """
-        Create a `Group` from a sequence of arrays and spatial metadata.
+        Create a `Group` from a sequence of multiscale arrays and spatial metadata.
 
         Parameters
         ----------
         paths: Sequence[str]
             The paths to the arrays.
+        axes: Sequence[Axis]
+            `Axis` objects describing the dimensions of the arrays.
+        arrays: Sequence[ArrayLike] | Sequence[ChunkedArrayLike]
+            A sequence of array-like objects that collectively represent the same image
+            at multiple levels of detail.
+        scales: Sequence[Sequence[int | float]]
+            A scale value for each axis of the array, for each array in `arrays`.
+        translations: Sequence[Sequence[int | float]]
+            A translation value for each axis the array, for each array in `arrays`.
+        name: str | None, default = None
+            A name for the multiscale collection. Optional.
+        type: str | None, default = None
+            A description of the type of multiscale image represented by this group. Optional.
+        metadata: Dict[str, Any] | None, default = None
+            Arbitrary metadata associated with this multiscale collection. Optional.
         """
-        group_transforms = None
-        if group_scale is not None:
-            group_transforms = tx.scale_translation(group_scale, group_translation)
-
         members_flat = {
             "/" + key.lstrip("/"): ArraySpec.from_array(arr, **kwargs)
             for key, arr in zip(paths, arrays, strict=True)
@@ -332,7 +341,7 @@ class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
                     paths, scales, translations, strict=True
                 )
             ],
-            coordinateTransformations=group_transforms,
+            coordinateTransformations=None,
         )
         return cls(
             members=GroupSpec.from_flat(members_flat).members,
