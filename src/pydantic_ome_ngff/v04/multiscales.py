@@ -1,7 +1,11 @@
 from __future__ import annotations
-
+from typing import TYPE_CHECKING
 from collections import Counter
-from typing import Annotated, Any, Dict, List, Self, Sequence, Union, cast
+
+if TYPE_CHECKING:
+    from typing_extensions import Self
+
+from typing import Annotated, Any, Dict, List, Sequence, Union, cast
 from pydantic import AfterValidator, BaseModel, Field, model_validator
 from pydantic_zarr.v2 import GroupSpec, ArraySpec
 from pydantic_ome_ngff.utils import (
@@ -91,10 +95,10 @@ def create_dataset(
     """
     return Dataset(
         path=path,
-        coordinateTransformations=[
+        coordinateTransformations=(
             tx.VectorScale(scale=scale),
             tx.VectorTranslation(translation=translation),
-        ],
+        ),
     )
 
 
