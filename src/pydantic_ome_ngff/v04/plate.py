@@ -1,7 +1,13 @@
 from __future__ import annotations
 from typing import List
 
-from pydantic import BaseModel, PositiveInt, ValidationError, field_validator
+from pydantic import (
+    BaseModel,
+    NonNegativeInt,
+    PositiveInt,
+    ValidationError,
+    field_validator,
+)
 from pydantic_zarr.v2 import ArraySpec, GroupSpec
 
 from pydantic_ome_ngff.base import VersionedBase

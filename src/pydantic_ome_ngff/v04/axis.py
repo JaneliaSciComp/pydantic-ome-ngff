@@ -3,7 +3,6 @@ from enum import Enum
 from typing import Optional
 import warnings
 
-from pydantic import model_validator
 
 from pydantic_ome_ngff.base import StrictVersionedBase
 from pydantic_ome_ngff.v04.base import version

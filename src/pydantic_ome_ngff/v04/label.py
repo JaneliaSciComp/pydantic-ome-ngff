@@ -56,7 +56,7 @@ def parse_version(version: Literal["0.4"] | None) -> Literal["0.4"] | None:
             f"The `version` attribute is `None`. Version {NGFF_VERSION} of "
             f"the OME-NGFF spec states that `version` should either be unset or the string {NGFF_VERSION}"
         )
-        # This goes against a recommendation from the spec, but emitting a warning is annoying. 
+        # This goes against a recommendation from the spec, but emitting a warning is annoying.
         # leaving this here as a placeholder.
     return version
 
