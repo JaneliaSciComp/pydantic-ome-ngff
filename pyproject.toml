@@ -10,11 +10,7 @@ packages = [{include = "pydantic_ome_ngff", from="src"}]
 [tool.poetry.dependencies]
 python = "^3.10"
 pydantic-zarr = "0.6.1"
-fsspec = "^2023.10.0"
-s3fs = "^2023.10.0"
 rich = "^13.6.0"
-mkdocs-material = "^9.5.5"
-
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.0.4"
