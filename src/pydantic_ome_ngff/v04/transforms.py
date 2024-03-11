@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-from typing import Literal, Sequence
+from typing import Annotated, Any, Literal, Sequence
+
+from pydantic import BeforeValidator
 
 from pydantic_ome_ngff.base import StrictBase
+import numpy as np
 
 
 class Identity(StrictBase):
@@ -74,7 +77,7 @@ class VectorTranslation(StrictBase):
     """
 
     type: Literal["translation"] = "translation"
-    translation: Sequence[float | int]
+    translation: Annotated[Sequence[float | int], BeforeValidator(listify_numpy)]
 
 
 class VectorScale(StrictBase):
@@ -92,7 +95,7 @@ class VectorScale(StrictBase):
     """
 
     type: Literal["scale"] = "scale"
-    scale: Sequence[float | int]
+    scale: Annotated[Sequence[float | int], BeforeValidator(listify_numpy)]
 
 
 def ndim(
@@ -168,3 +171,13 @@ def ensure_dimensionality(
         )
         raise ValueError(msg)
     return transforms
+
+
+def listify_numpy(data: Any) -> Any:
+    """
+    If the input is a numpy array, turn it into a list and return it.
+    Otherwise return the input unchanged.
+    """
+    if isinstance(data, np.ndarray):
+        return data.tolist()
+    return data
