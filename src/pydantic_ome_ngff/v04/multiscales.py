@@ -335,7 +335,7 @@ class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
             name=name,
             type=type,
             metadata=metadata,
-            axes=list(axes),
+            axes=axes,
             datasets=[
                 create_dataset(path=path, scale=scale, translation=translation)
                 for path, scale, translation in zip(
