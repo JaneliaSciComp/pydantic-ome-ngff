@@ -118,6 +118,9 @@ axes = [
 
 ndim = len(axes)
 
+# the chunk size we want to use for our Zarr arrays
+store_chunks = (1, 2, 2, 2)
+
 # simulate a multiscale pyramid
 shapes = (10,) * ndim, (5,) * ndim
 arrays = []
@@ -150,8 +153,8 @@ group_model = Group.from_arrays(
     paths=paths,
     arrays=arrays,
     scales=scales,
-    translations=translations
-    )
+    translations=translations,
+    chunks=store_chunks)
 
 print(group_model.model_dump())
 """
@@ -201,7 +204,7 @@ print(group_model.model_dump())
             'zarr_version': 2,
             'attributes': {},
             'shape': (10, 10, 10, 10),
-            'chunks': (10, 10, 10, 10),
+            'chunks': (1, 2, 2, 2),
             'dtype': '<f8',
             'fill_value': 0,
             'order': 'C',
@@ -213,7 +216,7 @@ print(group_model.model_dump())
             'zarr_version': 2,
             'attributes': {},
             'shape': (5, 5, 5, 5),
-            'chunks': (5, 5, 5, 5),
+            'chunks': (1, 2, 2, 2),
             'dtype': '<f8',
             'fill_value': 0,
             'order': 'C',
@@ -228,14 +231,14 @@ print(group_model.model_dump())
 # to actually do something useful with this model, we have to serialize it to storage
 
 # make an in-memory zarr store for demo purposes
-# with real data, you would use DirectoryStore or FSStore
+# with real data, you would use `zarr.storage.DirectoryStore` or `zarr.storage.FSStore`
 store = zarr.MemoryStore()
 path = 'foo'
 stored_group = group_model.to_zarr(store, path='foo')
 
-
 # check that the expected arrays are present
 # no data has been written to these arrays, you must do that separately.
+# e.g., stored_group[s0] = arrays[0]
 print(stored_group.tree())
 """
 foo
