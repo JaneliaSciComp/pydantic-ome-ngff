@@ -123,29 +123,22 @@ store_chunks = (1, 2, 2, 2)
 
 # simulate a multiscale pyramid
 shapes = (10,) * ndim, (5,) * ndim
-arrays = []
-scales = []
-translations = []
-paths = []
+arrays = [np.zeros(s) for s in shapes]
 
-# define the base scaling and translation
-scale_base = [1.0, 2.0, 2.0, 2.0]
-trans_base = [0.0, 0.0, 0.0, 0.0]
+# arrays will be named s0, s1, etc
+paths = [f's{idx}' for idx in range(len(shapes))]
 
-for idx, s in enumerate(shapes):
-    arrays.append(np.zeros(s))
-    # power of 2 downsampling per-axis for each image
-    scales.append(np.multiply(2 ** idx, scale_base))
-    # downsampling-induced translation per-axis for each image
-    translations.append(
-        np.multiply(scale_base, 2 ** (idx - 1)),
-    )
+# regular 2x downsampling
+scales = [
+    [1.0, 2.0, 2.0, 2.0],
+    [2.0, 4.0, 4.0, 4.0],
+]
 
-    if idx > 0:
-        translations[-1] += np.sum(translations[:-1], axis=0)
-
-    # name the arrays s0, s1, s2
-    paths.append(f's{idx}')
+# translation introduced by 2x downsampling
+translations = [
+    [0.0, 0.0, 0.0, 0.0],
+    [0.5, 1.0, 1.0, 1.0]
+]
 
 # this is now a complete model of the Zarr group
 group_model = Group.from_arrays(
@@ -174,7 +167,7 @@ print(group_model.model_dump())
                             {'type': 'scale', 'scale': [1.0, 2.0, 2.0, 2.0]},
                             {
                                 'type': 'translation',
-                                'translation': [0.5, 1.0, 1.0, 1.0],
+                                'translation': [0.0, 0.0, 0.0, 0.0],
                             },
                         ),
                     },
@@ -184,7 +177,7 @@ print(group_model.model_dump())
                             {'type': 'scale', 'scale': [2.0, 4.0, 4.0, 4.0]},
                             {
                                 'type': 'translation',
-                                'translation': [1.5, 3.0, 3.0, 3.0],
+                                'translation': [0.5, 1.0, 1.0, 1.0],
                             },
                         ),
                     },
@@ -261,14 +254,14 @@ print(stored_group.attrs.asdict())
                     'path': 's0',
                     'coordinateTransformations': (
                         {'type': 'scale', 'scale': [1.0, 2.0, 2.0, 2.0]},
-                        {'type': 'translation', 'translation': [0.5, 1.0, 1.0, 1.0]},
+                        {'type': 'translation', 'translation': [0.0, 0.0, 0.0, 0.0]},
                     ),
                 },
                 {
                     'path': 's1',
                     'coordinateTransformations': (
                         {'type': 'scale', 'scale': [2.0, 4.0, 4.0, 4.0]},
-                        {'type': 'translation', 'translation': [1.5, 3.0, 3.0, 3.0]},
+                        {'type': 'translation', 'translation': [0.5, 1.0, 1.0, 1.0]},
                     ),
                 },
             ],
