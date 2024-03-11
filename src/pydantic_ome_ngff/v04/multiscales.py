@@ -286,7 +286,8 @@ class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
         guess_inferred_members = guess.model_copy(
             update={"members": {**guess.members, **members_normalized.members}}
         )
-        return guess_inferred_members
+        result = cls(**guess_inferred_members.model_dump())
+        return result
 
     @classmethod
     def from_arrays(
