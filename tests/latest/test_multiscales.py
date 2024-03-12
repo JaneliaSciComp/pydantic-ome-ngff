@@ -6,14 +6,14 @@ import jsonschema as jsc
 from pydantic_zarr.v2 import ArraySpec
 
 from pydantic_ome_ngff.latest.axis import Axis
-from pydantic_ome_ngff.latest.multiscales import (
+from pydantic_ome_ngff.latest.multiscale import (
     MultiscaleMetadata,
     GroupAttrs,
     Dataset,
     Group,
 )
 
-from pydantic_ome_ngff.latest.transforms import (
+from pydantic_ome_ngff.latest.transform import (
     Transform,
     VectorScale,
     VectorTranslation,

@@ -27,3 +27,13 @@ class ArrayLike(Protocol):
 @runtime_checkable
 class ChunkedArrayLike(ArrayLike, Protocol):
     chunks: Tuple[int, ...]
+
+
+def listify_numpy(data: Any) -> Any:
+    """
+    If the input is a numpy array, turn it into a list and return it.
+    Otherwise return the input unchanged.
+    """
+    if isinstance(data, np.ndarray):
+        return data.tolist()
+    return data

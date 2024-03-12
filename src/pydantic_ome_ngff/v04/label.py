@@ -7,7 +7,7 @@ from pydantic_ome_ngff.base import VersionedBase
 from pydantic_ome_ngff.utils import duplicates
 from pydantic_ome_ngff.v04.base import version as NGFF_VERSION
 
-import pydantic_ome_ngff.v04.multiscales as multiscales
+import pydantic_ome_ngff.v04.multiscale as multiscale
 
 ConInt = Annotated[int, Field(strict=True, ge=0, le=255)]
 RGBA = Tuple[ConInt, ConInt, ConInt, ConInt]
@@ -101,7 +101,7 @@ class ImageLabel(VersionedBase):
         return parse_imagelabel(self)
 
 
-class GroupAttrs(multiscales.GroupAttrs):
+class GroupAttrs(multiscale.GroupAttrs):
     """
     Attributes for a Zarr group that contains `image-label` metadata.
     Inherits from `v04.multiscales.MultiscaleAttrs`.
@@ -119,5 +119,5 @@ class GroupAttrs(multiscales.GroupAttrs):
     image_label: Annotated[ImageLabel, Field(..., serialization_alias="image-label")]
 
 
-class Group(multiscales.Group):
+class Group(multiscale.Group):
     attributes: GroupAttrs

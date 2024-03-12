@@ -6,7 +6,7 @@ from pydantic_zarr.v2 import ArraySpec, GroupSpec
 
 from pydantic_ome_ngff.base import VersionedBase
 from pydantic_ome_ngff.v04.base import version
-import pydantic_ome_ngff.v04.multiscales as multiscales
+import pydantic_ome_ngff.v04.multiscale as multiscale
 
 
 class Image(BaseModel):
@@ -29,7 +29,7 @@ class GroupAttrs(BaseModel):
     well: WellMetadata
 
 
-class Group(GroupSpec[GroupAttrs, Union[multiscales.Group, GroupSpec, ArraySpec]]):
+class Group(GroupSpec[GroupAttrs, Union[multiscale.Group, GroupSpec, ArraySpec]]):
     @field_validator("members", mode="after")
     @classmethod
     def contains_multiscale_group(
@@ -38,6 +38,6 @@ class Group(GroupSpec[GroupAttrs, Union[multiscales.Group, GroupSpec, ArraySpec]
         """
         Check that .members contains a MultiscaleGroup
         """
-        if not any(map(lambda v: isinstance(v, multiscales.Group), members.values())):
+        if not any(map(lambda v: isinstance(v, multiscale.Group), members.values())):
             raise ValidationError
         return members

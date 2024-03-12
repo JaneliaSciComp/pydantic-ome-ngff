@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal, Sequence
+from typing import Annotated, Literal, Sequence
 
 from pydantic import BeforeValidator
 
 from pydantic_ome_ngff.base import StrictBase
-import numpy as np
+
+from pydantic_ome_ngff.utils import listify_numpy
 
 
 class Identity(StrictBase):
@@ -107,39 +108,32 @@ def ndim(
     if hasattr(transform, "scale"):
         return len(transform.scale)
 
-    if hasattr(transform, "translation"):
+    else:
         return len(transform.translation)
-
-    msg = (
-        "Transform must be either `VectorScaleTransform` or `VectorTranslationTransform`."
-        f"Got {type(transform)} instead."
-    )
-    raise ValueError(msg)
 
 
 def scale_translation(
-    scale: Sequence[float], translation: Sequence[float] | None
-) -> tuple[Scale] | tuple[Scale, Translation]:
+    scale: Sequence[float], translation: Sequence[float]
+) -> tuple[Scale, Translation]:
     """
-    Create a `VectorScale` and, optionally, a `VectorTranslation` from a scale and a translation
+    Create a `VectorScale` and a `VectorTranslation` from a scale and a translation
     parameter.
     """
+
     len_scale = len(scale)
+    len_translation = len(translation)
 
     if len_scale < 1:
         msg = "Not enough values in scale. Got 0, expected at least 1."
         raise ValueError(msg)
 
+    if len_translation < 1:
+        msg = "Not enough values in translation. Got 0, expected at least 1."
+        raise ValueError(msg)
+
     vec_scale = VectorScale(scale=scale)
 
-    if translation is None:
-        return (vec_scale,)
-
-    len_translation = len(translation)
-    if len_translation < 1:
-        msg = "Not enough values in `translation`. Got 0, expected at least 1."
-        raise ValueError(msg)
-    if len_translation != len_scale:
+    if len(translation) != len_scale:
         msg = (
             f"Length of `scale` and `translation` do not match. `scale` has length = {len_scale}"
             f"but `translation` has length = {len_translation}"
@@ -171,13 +165,3 @@ def ensure_dimensionality(
         )
         raise ValueError(msg)
     return transforms
-
-
-def listify_numpy(data: Any) -> Any:
-    """
-    If the input is a numpy array, turn it into a list and return it.
-    Otherwise return the input unchanged.
-    """
-    if isinstance(data, np.ndarray):
-        return data.tolist()
-    return data

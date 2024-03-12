@@ -4,14 +4,14 @@ from pydantic import ValidationError
 import pytest
 import jsonschema as jsc
 from pydantic_zarr.v2 import ArraySpec
-from pydantic_ome_ngff.v04.multiscales import (
+from pydantic_ome_ngff.v04.multiscale import (
     MultiscaleMetadata,
     GroupAttrs,
     Dataset,
     Group,
 )
 
-from pydantic_ome_ngff.v04.transforms import (
+from pydantic_ome_ngff.v04.transform import (
     Transform,
     VectorScale,
     VectorTranslation,

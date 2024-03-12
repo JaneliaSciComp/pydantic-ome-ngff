@@ -16,7 +16,7 @@ from pydantic_ome_ngff.utils import (
 from pydantic_ome_ngff.base import StrictBase, StrictVersionedBase
 from pydantic_ome_ngff.v04.base import version
 from pydantic_ome_ngff.v04.axis import Axis, AxisType
-import pydantic_ome_ngff.v04.transforms as tx
+import pydantic_ome_ngff.v04.transform as tx
 import zarr
 from zarr.errors import ArrayNotFoundError, ContainsGroupError
 
@@ -76,7 +76,6 @@ class Dataset(StrictBase):
         The path to the Zarr array that stores the image described by this metadata. This path should be relative to the group that contains this metadata.
     coordinateTransformations: ctx.ScaleTransform | ctx.TranslationTransform
         The coordinate transformations for this image.
-
     """
 
     path: str
