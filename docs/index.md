@@ -10,10 +10,10 @@ This library aims to provide models for the the metadata objects and Zarr hierar
 
 ## Reading Multiscale metadata
 
-This example demonstrates how to use the `Group` class defined in `pydantic_ome_ngff.v04.multiscales` to model a multiscale group.
+This example demonstrates how to use the `Group` class defined in `pydantic_ome_ngff.v04.multiscale` to model a multiscale group.
 
 ```python
-from pydantic_ome_ngff.v04.multiscales import Group
+from pydantic_ome_ngff.v04.multiscale import Group
 import zarr
 # example data served over http
 url = "https://uk1s3.embassy.ebi.ac.uk/idr/zarr/v0.4/idr0062A/6001240.zarr"
@@ -103,7 +103,7 @@ print(arrays)
 `pydantic-ome-ngff` provides simple way to create multiscale metadata from a collection of arrays accompanied by spatial metadata.
 
 ```python
-from pydantic_ome_ngff.v04.multiscales import Group
+from pydantic_ome_ngff.v04.multiscale import Group
 from pydantic_ome_ngff.v04.axis import Axis
 import numpy as np
 import zarr
@@ -276,7 +276,4 @@ print(stored_group.attrs.asdict())
     ]
 }
 """
-
-
-
 ```

@@ -34,7 +34,7 @@ nav:
       - v04:
         - api/v04/multiscales.md
         - api/v04/axis.md
-        - api/v04/transforms.md
+        - api/v04/transform.md
 
 plugins:
 - mkdocstrings:
