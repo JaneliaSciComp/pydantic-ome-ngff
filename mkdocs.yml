@@ -5,8 +5,8 @@ site_description: >-
   Pydantic models for the OME-NGFF file format.
 
 # Repository
-repo_name: janeliascicomp/pydantic-ome-ngff
-repo_url: https://github.com/janeliascicomp/pydantic-zarr
+repo_name: janelia-cellmap/pydantic-ome-ngff
+repo_url: https://github.com/janeliascicomp/pydantic-ome-ngff
 
 # Copyright
 copyright: Copyright &copy; 2016 - 2023 HHMI / Janelia
@@ -32,9 +32,11 @@ nav:
     - About: index.md
     - API:
       - v04:
-        - api/v04/multiscales.md
+        - api/v04/multiscale.md
         - api/v04/axis.md
         - api/v04/transform.md
+        - api/v04/label.md
+        - api/v04/plate.md
 
 plugins:
 - mkdocstrings:

@@ -4,13 +4,33 @@
 
 # About
 
-This library aims to provide models for the the metadata objects and Zarr hierarchies described in the [OME-NGFF](https://ngff.openmicroscopy.org/) specifications.
+This library aims to model the metadata objects and Zarr hierarchies described in the [OME-NGFF](https://ngff.openmicroscopy.org/) specifications, with an emphasis on the core multiscale metadata. 
+
+You can use this library to:
+
+- Read existing OME-NGFF data
+- Create your own OME-NGFF data  
+
+See the [reading](#reading-a-multiscale-group) and [writing](#creating-a-multiscale-group) examples for basic usage. 
+
+The base Pydantic models for Zarr groups and arrays used in this library are defined in [`pydantic-zarr`](https://janelia-cellmap.github.io/pydantic-zarr/)
+
+## Limitations
+
+### Supported versions
+
+Version 0.4 of OME-NGFF has pretty extensive support, although my focus has been on getting the `Multiscales` metadata right; I don't use `well` or `plate` metadata, so it's likely that I have missed something there. I have not put a lot of effort into supporting `0.5-dev`, as it's not clear when that version will be released, or even what will be in it, but contributions to rectify this are welcome. 
+
+### Array data
+
+This library only models the *structure* of a Zarr hierarchy, i.e. the layout of Zarr groups and arrays, and their metadata; it provides no functionality for efficiently reading or writing large Zarr arrays. Consider [`tensorstore`](https://google.github.io/tensorstore/) or [`dask`](https://www.dask.org/) for this purpose.
+
 
 # Examples
 
-## Reading Multiscale metadata
+## Reading a Multiscale group
 
-This example demonstrates how to use the `Group` class defined in `pydantic_ome_ngff.v04.multiscale` to model a multiscale group.
+This example demonstrates how to use the `Group` class defined in `pydantic_ome_ngff.v04.multiscale` to model an existing multiscale group.
 
 ```python
 from pydantic_ome_ngff.v04.multiscale import Group
@@ -98,9 +118,15 @@ print(arrays)
 """
 ```
 
-## Creating multiscale metadata
+## Creating a multiscale group
 
-`pydantic-ome-ngff` provides simple way to create multiscale metadata from a collection of arrays accompanied by spatial metadata.
+`pydantic-ome-ngff` provides simple way to create multiscale metadata from a collection of arrays accompanied by spatial metadata. 
+
+The basic workflow is as follows:
+
+ 1. Use in-memory numpy or dask arrays and spatial metadata to instantiate a model of the OME-NGFF multiscale Zarr group we want to create. This model contains attributes and models of Zarr arrays, but no array data (which keeps the model lightweight). 
+ 2. Serialize the model to a storage backend, which will create the Zarr groups and arrays defined by the model, along with their metadata. 
+3. Write array data to the newly created Zarr arrays, using a method that suits your application. 
 
 ```python
 from pydantic_ome_ngff.v04.multiscale import Group
@@ -128,13 +154,13 @@ arrays = [np.zeros(s) for s in shapes]
 # arrays will be named s0, s1, etc
 paths = [f's{idx}' for idx in range(len(shapes))]
 
-# regular 2x downsampling
+# downsampling by 2 in each axis
 scales = [
     [1.0, 2.0, 2.0, 2.0],
     [2.0, 4.0, 4.0, 4.0],
 ]
 
-# translation introduced by 2x downsampling
+# s0 is at the origin; s1 is at the offset induced by downsampling
 translations = [
     [0.0, 0.0, 0.0, 0.0],
     [0.5, 1.0, 1.0, 1.0]
@@ -221,23 +247,24 @@ print(group_model.model_dump())
 }
 """
 
-# to actually do something useful with this model, we have to serialize it to storage
-
-# make an in-memory zarr store for demo purposes
+# to do something useful with this model, we have to serialize it to storage
+# we make an in-memory zarr store for demo purposes
 # with real data, you would use `zarr.storage.DirectoryStore` or `zarr.storage.FSStore`
 store = zarr.MemoryStore()
 path = 'foo'
 stored_group = group_model.to_zarr(store, path='foo')
 
 # check that the expected arrays are present
-# no data has been written to these arrays, you must do that separately.
-# e.g., stored_group[s0] = arrays[0]
 print(stored_group.tree())
 """
 foo
  ├── s0 (10, 10, 10, 10) float64
  └── s1 (5, 5, 5, 5) float64
 """
+
+# NOTE:
+# no data has been written to these arrays, you must do that separately.
+# e.g., stored_group[s0] = arrays[0]
 
 # check that the expected attributes are present
 print(stored_group.attrs.asdict())
