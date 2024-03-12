@@ -329,26 +329,28 @@ def test_multiscale_group_datasets_rank(multi_meta: MultiscaleMetadata) -> None:
     }
     Group(attributes=group_attrs, members=good_items)
 
+    match = "Transform dimensionality must match array dimensionality."
     # arrays with varying rank
     bad_items = {
         d.path: ArraySpec(
             shape=(1,) * (idx + 1),
             dtype="uint8",
             chunks=(1,) * (idx + 1),
-            attributes={},
         )
         for idx, d in enumerate(multi_meta.datasets)
     }
 
-    with pytest.raises(
-        ValidationError, match="All arrays must have the same dimensionality."
-    ):
+    with pytest.raises(ValidationError, match=match):
         Group(attributes=group_attrs, members=bad_items)
 
-    with pytest.raises(ValidationError, match="Transform dimensionality"):
+    with pytest.raises(ValidationError, match=match):
         # arrays with rank that doesn't match the transform
         bad_items = {
-            d.path: ArraySpec(shape=(1,), dtype="uint8", chunks=(1,), attributes={})
+            d.path: ArraySpec(
+                shape=(1,),
+                dtype="uint8",
+                chunks=(1,),
+            )
             for d in multi_meta.datasets
         }
         Group(attributes=group_attrs, members=bad_items)

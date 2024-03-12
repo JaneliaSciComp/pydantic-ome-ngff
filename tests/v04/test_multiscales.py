@@ -298,7 +298,9 @@ def test_multiscale_group_datasets_exist(
     group_attrs = GroupAttrs(multiscales=[default_multiscale])
     good_items = {
         d.path: ArraySpec(
-            shape=(1, 1, 1, 1), dtype="uint8", chunks=(1, 1, 1, 1), attributes={}
+            shape=(1, 1, 1, 1),
+            dtype="uint8",
+            chunks=(1, 1, 1, 1),
         )
         for d in default_multiscale.datasets
     }
@@ -306,7 +308,9 @@ def test_multiscale_group_datasets_exist(
 
     bad_items = {
         d.path + "x": ArraySpec(
-            shape=(1, 1, 1, 1), dtype="uint8", chunks=(1, 1, 1, 1), attributes={}
+            shape=(1, 1, 1, 1),
+            dtype="uint8",
+            chunks=(1, 1, 1, 1),
         )
         for d in default_multiscale.datasets
     }
@@ -317,7 +321,9 @@ def test_multiscale_group_datasets_exist(
     ):
         bad_items = {
             d.path + "x": ArraySpec(
-                shape=(1, 1, 1, 1), dtype="uint8", chunks=(1, 1, 1, 1), attributes={}
+                shape=(1, 1, 1, 1),
+                dtype="uint8",
+                chunks=(1, 1, 1, 1),
             )
             for d in default_multiscale.datasets
         }
@@ -328,7 +334,9 @@ def test_multiscale_group_datasets_rank(default_multiscale: MultiscaleMetadata) 
     group_attrs = GroupAttrs(multiscales=[default_multiscale])
     good_items = {
         d.path: ArraySpec(
-            shape=(1, 1, 1, 1), dtype="uint8", chunks=(1, 1, 1, 1), attributes={}
+            shape=(1, 1, 1, 1),
+            dtype="uint8",
+            chunks=(1, 1, 1, 1),
         )
         for d in default_multiscale.datasets
     }
@@ -340,21 +348,17 @@ def test_multiscale_group_datasets_rank(default_multiscale: MultiscaleMetadata) 
             shape=(1,) * (idx + 1),
             dtype="uint8",
             chunks=(1,) * (idx + 1),
-            attributes={},
         )
         for idx, d in enumerate(default_multiscale.datasets)
     }
-
-    with pytest.raises(
-        ValidationError, match="All arrays must have the same dimensionality."
-    ):
+    match = "Transform dimensionality must match array dimensionality."
+    with pytest.raises(ValidationError, match=match):
         # arrays with varying rank
         bad_items = {
             d.path: ArraySpec(
                 shape=(1,) * (idx + 1),
                 dtype="uint8",
                 chunks=(1,) * (idx + 1),
-                attributes={},
             )
             for idx, d in enumerate(default_multiscale.datasets)
         }
@@ -362,13 +366,13 @@ def test_multiscale_group_datasets_rank(default_multiscale: MultiscaleMetadata) 
 
     # arrays with rank that doesn't match the transform
     bad_items = {
-        d.path: ArraySpec(shape=(1,), dtype="uint8", chunks=(1,), attributes={})
+        d.path: ArraySpec(shape=(1,), dtype="uint8", chunks=(1,))
         for d in default_multiscale.datasets
     }
-    with pytest.raises(ValidationError, match="Transform dimensionality"):
+    with pytest.raises(ValidationError, match=match):
         # arrays with rank that doesn't match the transform
         bad_items = {
-            d.path: ArraySpec(shape=(1,), dtype="uint8", chunks=(1,), attributes={})
+            d.path: ArraySpec(shape=(1,), dtype="uint8", chunks=(1,))
             for d in default_multiscale.datasets
         }
         Group(attributes=group_attrs, members=bad_items)

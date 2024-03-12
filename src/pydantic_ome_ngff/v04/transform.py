@@ -6,7 +6,7 @@ from pydantic import BeforeValidator
 
 from pydantic_ome_ngff.base import StrictBase
 
-from pydantic_ome_ngff.utils import listify_numpy
+from pydantic_ome_ngff.utils import ArrayLike, listify_numpy
 
 
 class Identity(StrictBase):
@@ -165,3 +165,15 @@ def ensure_dimensionality(
         )
         raise ValueError(msg)
     return transforms
+
+
+def array_transform_consistency(
+    array: ArrayLike, transforms: Sequence[VectorScale, VectorTranslation]
+) -> bool:
+    """
+    Check if an array is consistent, in terms of dimensionality, with a collection of transforms.
+    """
+    # check that the transforms are themselves consistent
+    transforms_checked = ensure_dimensionality(transforms=transforms)
+    # we only need to compare the array to the first transform
+    return len(array.shape) == ndim(transforms_checked[0])

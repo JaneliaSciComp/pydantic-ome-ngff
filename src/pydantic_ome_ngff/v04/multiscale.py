@@ -86,17 +86,32 @@ class Dataset(StrictBase):
     ]
 
 
+# consider making this a classmethod of `Dataset`
 def create_dataset(
     path: str, scale: Sequence[int | float], translation: Sequence[int | float]
 ) -> Dataset:
     """
-    Create a `Dataset` from a path, a scale, and a translation.
+    Create a `Dataset` from a path, a scale, and a translation. This metadata models a Zarr array that partially comprises a multiscale group.
+
+    Parameters
+    ----------
+
+    path: str
+        The path, relative to the multiscale group, of the Zarr array.
+    scale: Sequence[int | float]:
+        The scale parameter for data stored in the Zarr array. This should define the spacing between elements of the coordinate grid of the data.
+    translate: Sequence[int | float]:
+        The translation parameter for data stored in the Zarr array. This should define the origin of the coordinate grid of the data.
+
+    Returns
+    -------
+
+    `Dataset`
     """
     return Dataset(
         path=path,
         coordinateTransformations=(
-            tx.VectorScale(scale=scale),
-            tx.VectorTranslation(translation=translation),
+            tx.scale_translation(scale=scale, translation=translation)
         ),
     )
 
@@ -173,7 +188,7 @@ class MultiscaleMetadata(StrictVersionedBase):
         The type of the multiscale image. Optional. Defaults to `None`.
     metadata: Dict[str, Any] | None
         Metadata for this multiscale image. Optional. Defaults to `None`.
-    datasets: List[MultiscaleDataset]
+    datasets: List[Dataset]
         A collection of descriptions of arrays that collectively comprise this multiscale image.
     axes: List[Axis]
         A list of `Axis` objects that define the semantics for the different axes of the multiscale image.
@@ -223,8 +238,8 @@ class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
     Attributes
     ----------
 
-    attributes: MultiscaleAttrs
-        The attributes of this Zarr group, which should contain valid `MultiscaleAttrs`.
+    attributes: GroupAttrs
+        The attributes of this Zarr group, which should contain valid `GroupAttrs`.
     members Dict[Str, ArraySpec | GroupSpec]:
         The members of this Zarr group. Should be instances of `pydantic_zarr.GroupSpec` or `pydantic_zarr.ArraySpec`.
 
@@ -233,11 +248,10 @@ class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
     @classmethod
     def from_zarr(cls, node: zarr.Group) -> Group:
         """
-        Create an instance of `Group` from a `node`, a `zarr.Group`. This method infers the
-        discovers Zarr arrays in the hierarchy rooted at `node` by inspecting the OME-NGFF
+        Create an instance of `Group` from a `node`, a `zarr.Group`. This method discovers Zarr arrays in the hierarchy rooted at `node` by inspecting the OME-NGFF
         multiscales metadata.
 
-        Paramters
+        Parameters
         ---------
         node: zarr.Group
             A Zarr group that has valid OME-NGFF multiscale metadata.
@@ -245,7 +259,7 @@ class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
         Returns
         -------
         Group
-            A model of the zarr Group.
+            A model of the Zarr group.
         """
         # on unlistable storage backends, the members of this group will be {}
         guess = GroupSpec.from_zarr(node)
@@ -305,6 +319,8 @@ class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
         """
         Create a `Group` from a sequence of multiscale arrays and spatial metadata.
 
+        The arrays are used as templates for corresponding `ArraySpec` instances, which model the Zarr arrays that would be created if the `Group` was stored.
+
         Parameters
         ----------
         paths: Sequence[str]
@@ -313,7 +329,8 @@ class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
             `Axis` objects describing the dimensions of the arrays.
         arrays: Sequence[ArrayLike] | Sequence[ChunkedArrayLike]
             A sequence of array-like objects that collectively represent the same image
-            at multiple levels of detail.
+            at multiple levels of detail. The attributes of these arrays are used to create `ArraySpec` objects
+            that model Zarr arrays stored in the Zarr group.
         scales: Sequence[Sequence[int | float]]
             A scale value for each axis of the array, for each array in `arrays`.
         translations: Sequence[Sequence[int | float]]
@@ -352,9 +369,6 @@ class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
     def check_arrays_exist(self) -> "Group":
         """
         Check that the arrays referenced in the `multiscales` metadata are actually contained in this group.
-
-        Note that this is currently too strict, since it will not check for arrays in subgroups, but this is
-        allowed by the spec. Adding tree-flattening here or in pydantic-zarr can fix this.
         """
         attrs = self.attributes
         flattened = self.to_flat()
@@ -381,53 +395,37 @@ class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
     @model_validator(mode="after")
     def check_array_ndim(self) -> "Group":
         """
-        Check that all the arrays referenced by the `multiscales` metadata have the same
-        dimensionality, and that this dimensionality is consistent with the
+        Check that all the arrays referenced by the `multiscales` metadata have dimensionality consistent with the
         `coordinateTransformations` metadata.
         """
         multimeta = self.attributes.multiscales
 
         flat_self = self.to_flat()
-        ndims = []
-        # get shapes from all the arrays referenced in `multiscales`
-        for multiscale in multimeta:
-            for dataset in multiscale.datasets:
-                node = flat_self["/" + dataset.path.lstrip("/")]
-                if isinstance(node, ArraySpec):
-                    ndims.append(len(flat_self["/" + dataset.path.lstrip("/")].shape))
-                else:
-                    msg = (
-                        f"Expected an instance of ArraySpec at {dataset.path}, "
-                        f"got {type(node)} instead"
-                    )
-                    raise TypeError(msg)
-
-        if len(set(ndims)) > 1:
-            msg = (
-                "All arrays must have the same dimensionality. "
-                f"Got arrays with dimensionality {ndims}."
-            )
-            raise ValueError(msg)
 
         # check that each transform has compatible rank
         for multiscale in multimeta:
-            tforms = []
-            if multiscale.coordinateTransformations is not None:
-                tforms.extend(multiscale.coordinateTransformations)
             for dataset in multiscale.datasets:
-                tforms.extend(dataset.coordinateTransformations)
-            for tform in tforms:
-                if hasattr(tform, "scale") or hasattr(tform, "translation"):
-                    tform = cast(
-                        Union[tx.VectorScale, tx.VectorTranslation],
-                        tform,
-                    )
-                    if (tform_dims := tx.ndim(tform)) not in set(ndims):
-                        msg = (
-                            f"Transform {tform} has dimensionality {tform_dims} "
-                            "which does not match the dimensionality of the arrays "
-                            f"in this group ({ndims}). Transform dimensionality "
-                            "must match array dimensionality."
+                arr: ArraySpec = flat_self["/" + dataset.path.lstrip("/")]
+                arr_ndim = len(arr.shape)
+                tforms = dataset.coordinateTransformations
+
+                if multiscale.coordinateTransformations is not None:
+                    tforms += multiscale.coordinateTransformations
+
+                for tform in tforms:
+                    if hasattr(tform, "scale") or hasattr(tform, "translation"):
+                        tform = cast(
+                            Union[tx.VectorScale, tx.VectorTranslation],
+                            tform,
                         )
-                        raise ValueError(msg)
+                        if (tform_ndim := tx.ndim(tform)) != arr_ndim:
+                            msg = (
+                                f"Transform {tform} has dimensionality {tform_ndim}, "
+                                "which does not match the dimensionality of the array "
+                                f"found in this group at {dataset.path} ({arr_ndim}). "
+                                "Transform dimensionality must match array dimensionality."
+                            )
+
+                            raise ValueError(msg)
+
         return self
