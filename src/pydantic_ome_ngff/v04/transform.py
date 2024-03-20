@@ -73,12 +73,12 @@ class VectorTranslation(StrictBase):
     ----------
     type: Literal["translation"]
         The string "translation".
-    translation: Sequence[float | int]
+    translation: tuple[float | int]
         A sequence of numbers that define an N-dimensional translation transformation.
     """
 
     type: Literal["translation"] = "translation"
-    translation: Annotated[Sequence[float | int], BeforeValidator(listify_numpy)]
+    translation: Annotated[tuple[float | int, ...], BeforeValidator(listify_numpy)]
 
 
 class VectorScale(StrictBase):
@@ -91,12 +91,12 @@ class VectorScale(StrictBase):
     ----------
     type: Literal["scale"]
         The string "scale".
-    scale: Sequence[float | int]
+    scale: tuple[float | int]
         A sequence of numbers that define an  N-dimensional scaling transformation.
     """
 
     type: Literal["scale"] = "scale"
-    scale: Annotated[Sequence[float | int], BeforeValidator(listify_numpy)]
+    scale: Annotated[tuple[float | int, ...], BeforeValidator(listify_numpy)]
 
 
 def ndim(

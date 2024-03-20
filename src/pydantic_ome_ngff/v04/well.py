@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, Union
+from typing import Union
 
 from pydantic import BaseModel, ValidationError, field_validator
 from pydantic_zarr.v2 import ArraySpec, GroupSpec
@@ -22,7 +22,7 @@ class WellMetadata(VersionedBase):
 
     _version = version
     version: str | None = version
-    images: List[Image]
+    images: tuple[Image, ...]
 
 
 class GroupAttrs(BaseModel):

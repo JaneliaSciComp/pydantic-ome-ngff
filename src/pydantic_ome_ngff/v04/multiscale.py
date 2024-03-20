@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from typing_extensions import Self
     from numcodecs.abc import Codec
 
-from typing import Annotated, Any, Dict, List, Sequence, Union, cast
+from typing import Annotated, Any, Dict, Sequence, Union, cast
 from pydantic import AfterValidator, BaseModel, Field, model_validator
 from pydantic_zarr.v2 import GroupSpec, ArraySpec
 from pydantic_ome_ngff.utils import (
@@ -193,11 +193,11 @@ class MultiscaleMetadata(StrictVersionedBase):
         The type of the multiscale image. Optional. Defaults to `None`.
     metadata: Dict[str, Any] | None
         Metadata for this multiscale image. Optional. Defaults to `None`.
-    datasets: List[Dataset]
+    datasets: tuple[Dataset]
         A collection of descriptions of arrays that collectively comprise this multiscale image.
-    axes: List[Axis]
+    axes: tuple[Axis]
         A list of `Axis` objects that define the semantics for the different axes of the multiscale image.
-    coordinateTransformations: List[tx.Scale, tx.Translation]
+    coordinateTransformations: tuple[tx.Scale] | tuple[tx.Scale, tx.Translation] | None
         Coordinate transformations that express a scaling and translation shared by all elements of
         `datasets`.
     """
@@ -207,9 +207,9 @@ class MultiscaleMetadata(StrictVersionedBase):
     name: Any = None
     type: Any = None
     metadata: Dict[str, Any] | None = None
-    datasets: Annotated[List[Dataset], Field(..., min_length=1)]
+    datasets: Annotated[tuple[Dataset, ...], Field(..., min_length=1)]
     axes: Annotated[
-        list[Axis],
+        tuple[Axis, ...],
         AfterValidator(ensure_axis_length),
         AfterValidator(ensure_axis_names),
         AfterValidator(ensure_axis_types),
@@ -227,11 +227,11 @@ class GroupAttrs(BaseModel):
 
     Attributes
     ----------
-    multiscales: List[MultiscaleMetadata]
+    multiscales: tuple[MultiscaleMetadata]
         A list of `MultiscaleMetadata`. Each element of `multiscales` specifies a multiscale image.
     """
 
-    multiscales: Annotated[List[MultiscaleMetadata], Field(..., min_length=1)]
+    multiscales: Annotated[tuple[MultiscaleMetadata, ...], Field(..., min_length=1)]
 
 
 class Group(GroupSpec[GroupAttrs, Union[ArraySpec, GroupSpec]]):
@@ -310,12 +310,12 @@ class Group(GroupSpec[GroupAttrs, Union[ArraySpec, GroupSpec]]):
     @classmethod
     def from_arrays(
         cls,
+        arrays: Sequence[ArrayLike | ChunkedArrayLike],
+        *,
         paths: Sequence[str],
         axes: Sequence[Axis],
-        arrays: Sequence[ArrayLike | ChunkedArrayLike],
         scales: Sequence[tuple[int | float]],
         translations: Sequence[tuple[int | float]],
-        *,
         name: str | None = None,
         type: str | None = None,
         metadata: Dict[str, Any] | None = None,

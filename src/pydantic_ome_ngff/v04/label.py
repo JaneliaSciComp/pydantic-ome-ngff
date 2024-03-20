@@ -1,6 +1,9 @@
 from __future__ import annotations
 import warnings
-from typing import List, Literal, Optional, Tuple, Annotated
+from typing import Literal, Optional, Tuple, Annotated, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing import List
 
 from pydantic import AfterValidator, BaseModel, Field, model_validator
 from pydantic_ome_ngff.base import VersionedBase
@@ -92,8 +95,8 @@ class ImageLabel(VersionedBase):
     version: Annotated[
         Literal["0.4"] | None, AfterValidator(parse_version)
     ] = NGFF_VERSION
-    colors: Annotated[Optional[List[Color]], AfterValidator(parse_colors)] = None
-    properties: Optional[List[Property]] = None
+    colors: Annotated[Optional[tuple[Color, ...]], AfterValidator(parse_colors)] = None
+    properties: Optional[tuple[Property, ...]] = None
     source: Optional[Source] = None
 
     @model_validator(mode="after")
@@ -112,7 +115,7 @@ class GroupAttrs(multiscale.GroupAttrs):
     ----------
     image_label: `ImageLabel`
         Image label metadata.
-    multiscales: List[v04.multiscales.Multiscales]
+    multiscales: tuple[v04.multiscales.Multiscales]
         Multiscale image metadata.
     """
 

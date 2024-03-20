@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import List
 
 from pydantic import (
     BaseModel,
@@ -44,11 +43,11 @@ class PlateMetadata(VersionedBase):
     _version = version
     version: str | None = version
     name: str | None = None
-    acquisitions: List[Acquisition]
-    columns: List[Entry]
-    rows: List[Entry]
+    acquisitions: tuple[Acquisition, ...]
+    columns: tuple[Entry, ...]
+    rows: tuple[Entry, ...]
     field_count: PositiveInt
-    wells: List[WellMetadata]
+    wells: tuple[WellMetadata, ...]
 
 
 class GroupAttrs(BaseModel):
