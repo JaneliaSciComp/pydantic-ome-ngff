@@ -1,6 +1,8 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 from collections import Counter
+from typing_extensions import Literal
+import numpy as np
 
 if TYPE_CHECKING:
     from typing_extensions import Self
@@ -19,6 +21,7 @@ from pydantic_ome_ngff.v04.axis import Axis, AxisType
 import pydantic_ome_ngff.v04.transform as tx
 import zarr
 from zarr.errors import ArrayNotFoundError, ContainsGroupError
+from zarr.util import guess_chunks
 
 VALID_NDIM = (2, 3, 4, 5)
 NUM_TX_MAX = 2
@@ -229,7 +232,7 @@ class GroupAttrs(BaseModel):
     multiscales: Annotated[List[MultiscaleMetadata], Field(..., min_length=1)]
 
 
-class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
+class Group(GroupSpec[GroupAttrs, Union[ArraySpec, GroupSpec]]):
     """
     A model of a Zarr group that implements OME-NGFF Multiscales metadata.
 
@@ -314,6 +317,7 @@ class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
         name: str | None = None,
         type: str | None = None,
         metadata: Dict[str, Any] | None = None,
+        chunks: tuple[int, ...] | tuple[tuple[int, ...]] | Literal["auto"] = "auto",
         **kwargs: Any,
     ) -> Self:
         """
@@ -341,10 +345,22 @@ class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
             A description of the type of multiscale image represented by this group. Optional.
         metadata: Dict[str, Any] | None, default = None
             Arbitrary metadata associated with this multiscale collection. Optional.
+        chunks: tuple[int] | tuple[tuple[int, ...]] | Literal["auto"], default = "auto"
+            The chunks for the arrays in this multiscale group.
+            If the string "auto" is provided, each array will have chunks set to the zarr-python default value, which depends on the shape and dtype of the array.
+            If a single sequence of ints is provided, then this defines the chunks for all arrays.
+            If a sequence of sequences of ints is provided, then this defines the chunks for each array.
         """
+
+        chunks_normalized = normalize_chunks(
+            chunks,
+            shapes=[s.shape for s in arrays],
+            typesizes=[s.dtype.itemsize for s in arrays],
+        )
+
         members_flat = {
-            "/" + key.lstrip("/"): ArraySpec.from_array(arr, **kwargs)
-            for key, arr in zip(paths, arrays, strict=True)
+            "/" + key.lstrip("/"): ArraySpec.from_array(arr, cnks, **kwargs)
+            for key, arr, cnks in zip(paths, arrays, chunks_normalized)
         }
 
         multimeta = MultiscaleMetadata(
@@ -354,9 +370,7 @@ class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
             axes=axes,
             datasets=[
                 create_dataset(path=path, scale=scale, translation=translation)
-                for path, scale, translation in zip(
-                    paths, scales, translations, strict=True
-                )
+                for path, scale, translation in zip(paths, scales, translations)
             ],
             coordinateTransformations=None,
         )
@@ -429,3 +443,32 @@ class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
                             raise ValueError(msg)
 
         return self
+
+
+def normalize_chunks(
+    chunks: Any, shapes: tuple[tuple[int, ...]], typesizes: tuple[tuple[int]]
+) -> tuple[tuple[int, ...]]:
+    """
+    If chunks is "auto", then use zarr default chunking based on the largest array for all the arrays.
+    If chunks is a sequence of ints, then use those chunks for all arrays.
+    If chunks is a sequence of sequences of ints, then use those chunks for each array.
+    """
+    if chunks == "auto":
+        # sort shapes by descending size
+        params_sorted_descending = sorted(
+            zip(shapes, typesizes), key=lambda v: np.prod(v[0]), reverse=True
+        )
+        return (guess_chunks(*params_sorted_descending[0]),) * len(shapes)
+    if isinstance(chunks, Sequence):
+        if all(isinstance(element, int) for element in chunks):
+            return (chunks,) * len(shapes)
+        if all(isinstance(element, Sequence) for element in chunks):
+            if all(map(lambda v: all(isinstance(k, int) for k in v), chunks)):
+                return tuple(map(tuple, chunks))
+            else:
+                raise ValueError(
+                    f"Expected a sequence of sequences of ints. Got {chunks} instead."
+                )
+    raise TypeError(
+        f'Input must be a sequence or the string "auto". Got {type(chunks)}'
+    )
