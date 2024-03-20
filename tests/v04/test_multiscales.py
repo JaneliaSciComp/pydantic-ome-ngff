@@ -457,7 +457,7 @@ def test_from_arrays(
     assert group.attributes.multiscales[0].type == type
     assert group.attributes.multiscales[0].metadata == metadata
     assert group.attributes.multiscales[0].coordinateTransformations is None
-    assert group.attributes.multiscales[0].axes == axes
+    assert group.attributes.multiscales[0].axes == tuple(axes)
     for idx, array in enumerate(arrays):
         array_model: ArraySpec = group_flat["/" + paths[idx]]
         assert array_model.order == order_expected

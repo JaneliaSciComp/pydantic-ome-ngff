@@ -13,7 +13,7 @@ def test_imagelabel(version: Literal["0.4"] | None):
     model = ImageLabel(colors=[color], version=version)
     dumped = model.model_dump()
 
-    assert dumped["colors"] == [color.model_dump()]
+    assert dumped["colors"] == (color.model_dump(),)
     # check that if the version is None, then we didn't write it out
     if version == "0.4":
         assert dumped["version"] == NGFF_VERSION
