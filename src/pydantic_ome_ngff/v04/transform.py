@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Annotated, Literal, Sequence
+from typing import Annotated, Literal, Sequence, Union
 
 from pydantic import BeforeValidator
 
@@ -145,9 +145,9 @@ def scale_translation(
     return (vec_scale, vec_trans)
 
 
-Scale = VectorScale | PathScale
-Translation = VectorTranslation | PathTranslation
-Transform = Scale | Translation
+Scale = Union[VectorScale, PathScale]
+Translation = Union[VectorTranslation, PathTranslation]
+Transform = Union[Scale, Translation]
 
 
 def ensure_dimensionality(

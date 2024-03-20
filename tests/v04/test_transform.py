@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Sequence, Tuple
 import pytest
 from pydantic_ome_ngff.v04.transform import (
