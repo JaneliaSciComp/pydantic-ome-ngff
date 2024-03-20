@@ -19,18 +19,17 @@ The base Pydantic models for Zarr groups and arrays used in this library are def
 
 ### Supported versions
 
-Version 0.4 of OME-NGFF has pretty extensive support, although my focus has been on getting the `Multiscales` metadata right; I don't use `well` or `plate` metadata, so it's likely that I have missed something there. I have not put a lot of effort into supporting `0.5-dev`, as it's not clear when that version will be released, or even what will be in it, but contributions to rectify this are welcome. 
+Version 0.4 of OME-NGFF has pretty extensive support, although my focus has been on getting the `Multiscales` metadata right; I don't use `well` or `plate` metadata, so it's highly likely that I have missed something there. I have not put a lot of effort into supporting `0.5-dev`, as it's not clear when that version will be released, or even what will be in it, but contributions to rectify this are welcome. If you find something that I didn't implement correctly, please [open an issue](https://github.com/JaneliaSciComp/pydantic-ome-ngff/issues).
 
 ### Array data
 
-This library only models the *structure* of a Zarr hierarchy, i.e. the layout of Zarr groups and arrays, and their metadata; it provides no functionality for efficiently reading or writing large Zarr arrays. Consider [`tensorstore`](https://google.github.io/tensorstore/) or [`dask`](https://www.dask.org/) for this purpose.
-
+This library only models the *structure* of a Zarr hierarchy, i.e. the layout of Zarr groups and arrays, and their metadata; it provides no functionality for efficiently reading or writing data from Zarr arrays. Use [`zarr-python`](https://github.com/zarr-developers/zarr-python) or [`tensorstore`](https://google.github.io/tensorstore/) for getting data in and out of Zarr arrays.
 
 # Examples
 
 ## Reading a Multiscale group
 
-This example demonstrates how to use the `Group` class defined in `pydantic_ome_ngff.v04.multiscale` to model an existing multiscale group.
+This example demonstrates how to use the [`Group`](./api/v04/multiscale.md#Group) class defined in [`pydantic_ome_ngff.v04.multiscale`](./api/v04/multiscale.md) to model a multiscale group from cloud storage.
 
 ```python
 from pydantic_ome_ngff.v04.multiscale import Group
@@ -120,7 +119,7 @@ print(arrays)
 
 ## Creating a multiscale group
 
-`pydantic-ome-ngff` provides simple way to create multiscale metadata from a collection of arrays accompanied by spatial metadata. 
+`pydantic-ome-ngff` provides a direct way to create multiscale metadata from a collection of arrays accompanied by spatial metadata. Note that the data in these arrays will not be accessed -- the arrays are used to create models of Zarr arrays, and so their `shape` and `dtype` attributes are necessary.
 
 The basic workflow is as follows:
 
@@ -251,7 +250,6 @@ print(group_model.model_dump())
 # we make an in-memory zarr store for demo purposes
 # with real data, you would use `zarr.storage.DirectoryStore` or `zarr.storage.FSStore`
 store = zarr.MemoryStore()
-path = 'foo'
 stored_group = group_model.to_zarr(store, path='foo')
 
 # check that the expected arrays are present
