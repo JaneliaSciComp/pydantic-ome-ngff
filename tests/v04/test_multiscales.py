@@ -385,6 +385,7 @@ def test_multiscale_group_datasets_rank(default_multiscale: MultiscaleMetadata) 
 @pytest.mark.parametrize("metadata", [None, {"foo": 10}])
 @pytest.mark.parametrize("ndim", [2, 3, 4, 5])
 @pytest.mark.parametrize("chunks", ["auto", "tuple", "tuple-of-tuple"])
+@pytest.mark.parametrize("order", ["auto", "C", "F"])
 def test_from_arrays(
     name: str | None,
     type: str | None,
@@ -392,6 +393,7 @@ def test_from_arrays(
     metadata: Dict[str, int] | None,
     ndim: int,
     chunks: Literal["auto", "tuple", "tuple-of-tuple"],
+    order: Literal["auto", "C", "F"],
 ) -> None:
     arrays = [np.arange(x**ndim).reshape((x,) * ndim) for x in [3, 2, 1]]
     paths = [path_pattern.format(idx) for idx in range(len(arrays))]
@@ -431,6 +433,11 @@ def test_from_arrays(
         chunks_arg = tuple((idx,) * ndim for idx in range(1, len(arrays) + 1))
         chunks_expected = chunks_arg
 
+    if order == "auto":
+        order_expected = "C"
+    else:
+        order_expected = order
+
     group = Group.from_arrays(
         paths=paths,
         axes=axes,
@@ -441,6 +448,7 @@ def test_from_arrays(
         type=type,
         metadata=metadata,
         chunks=chunks_arg,
+        order=order,
     )
 
     group_flat = group.to_flat()
@@ -452,6 +460,7 @@ def test_from_arrays(
     assert group.attributes.multiscales[0].axes == axes
     for idx, array in enumerate(arrays):
         array_model: ArraySpec = group_flat["/" + paths[idx]]
+        assert array_model.order == order_expected
         assert array.shape == array_model.shape
         assert array.dtype == array_model.dtype
         assert chunks_expected[idx] == array_model.chunks

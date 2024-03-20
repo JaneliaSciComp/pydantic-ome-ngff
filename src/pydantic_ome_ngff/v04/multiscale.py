@@ -6,6 +6,7 @@ import numpy as np
 
 if TYPE_CHECKING:
     from typing_extensions import Self
+    from numcodecs.abc import Codec
 
 from typing import Annotated, Any, Dict, List, Sequence, Union, cast
 from pydantic import AfterValidator, BaseModel, Field, model_validator
@@ -19,6 +20,7 @@ from pydantic_ome_ngff.base import StrictBase, StrictVersionedBase
 from pydantic_ome_ngff.v04.base import version
 from pydantic_ome_ngff.v04.axis import Axis, AxisType
 import pydantic_ome_ngff.v04.transform as tx
+from numcodecs import Zstd
 import zarr
 from zarr.errors import ArrayNotFoundError, ContainsGroupError
 from zarr.util import guess_chunks
@@ -311,14 +313,16 @@ class Group(GroupSpec[GroupAttrs, Union[ArraySpec, GroupSpec]]):
         paths: Sequence[str],
         axes: Sequence[Axis],
         arrays: Sequence[ArrayLike | ChunkedArrayLike],
-        scales: Sequence[Sequence[int | float]],
-        translations: Sequence[Sequence[int | float]],
+        scales: Sequence[tuple[int | float]],
+        translations: Sequence[tuple[int | float]],
         *,
         name: str | None = None,
         type: str | None = None,
         metadata: Dict[str, Any] | None = None,
         chunks: tuple[int, ...] | tuple[tuple[int, ...]] | Literal["auto"] = "auto",
-        **kwargs: Any,
+        compressor: Codec = Zstd(3),
+        fill_value: Any = 0,
+        order: Literal["C", "F", "auto"] = "auto",
     ) -> Self:
         """
         Create a `Group` from a sequence of multiscale arrays and spatial metadata.
@@ -350,6 +354,12 @@ class Group(GroupSpec[GroupAttrs, Union[ArraySpec, GroupSpec]]):
             If the string "auto" is provided, each array will have chunks set to the zarr-python default value, which depends on the shape and dtype of the array.
             If a single sequence of ints is provided, then this defines the chunks for all arrays.
             If a sequence of sequences of ints is provided, then this defines the chunks for each array.
+        fill_value: Any, default = 0
+            The fill value for the Zarr arrays.
+        compressor: `Codec`
+            The compressor to use for the arrays. Default is `numcodecs.ZStd`.
+        order: "auto" | "C" | "F"
+            The memory layout used for chunks of Zarr arrays. The default is "auto", which will infer the order from the input arrays, and fall back to "C" if that inference fails.
         """
 
         chunks_normalized = normalize_chunks(
@@ -359,7 +369,15 @@ class Group(GroupSpec[GroupAttrs, Union[ArraySpec, GroupSpec]]):
         )
 
         members_flat = {
-            "/" + key.lstrip("/"): ArraySpec.from_array(arr, cnks, **kwargs)
+            "/" + key.lstrip("/"): ArraySpec.from_array(
+                arr,
+                cnks,
+                attributes={},
+                compressor=compressor,
+                filters=None,
+                fill_value=fill_value,
+                order=order,
+            )
             for key, arr, cnks in zip(paths, arrays, chunks_normalized)
         }
 
