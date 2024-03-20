@@ -245,7 +245,7 @@ class Group(GroupSpec[GroupAttrs, Union[ArraySpec, GroupSpec]]):
 
     attributes: GroupAttrs
         The attributes of this Zarr group, which should contain valid `GroupAttrs`.
-    members Dict[Str, ArraySpec | GroupSpec]:
+    members: Dict[Str, ArraySpec | GroupSpec]:
         The members of this Zarr group. Should be instances of `pydantic_zarr.GroupSpec` or `pydantic_zarr.ArraySpec`.
 
     """
