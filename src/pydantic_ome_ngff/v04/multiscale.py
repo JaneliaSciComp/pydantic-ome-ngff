@@ -193,11 +193,11 @@ class MultiscaleMetadata(StrictVersionedBase):
         The type of the multiscale image. Optional. Defaults to `None`.
     metadata: Dict[str, Any] | None
         Metadata for this multiscale image. Optional. Defaults to `None`.
-    datasets: tuple[Dataset]
+    datasets: tuple[Dataset, ...]
         A collection of descriptions of arrays that collectively comprise this multiscale image.
-    axes: tuple[Axis]
-        A list of `Axis` objects that define the semantics for the different axes of the multiscale image.
-    coordinateTransformations: tuple[tx.Scale] | tuple[tx.Scale, tx.Translation] | None
+    axes: tuple[Axis, ...]
+        A tuple of `Axis` objects that define the semantics for the different axes of the multiscale image.
+    coordinateTransformations: tuple[tx.Scale] | tuple[tx.Scale, tx.Translation] | None. Defaults to `None`.
         Coordinate transformations that express a scaling and translation shared by all elements of
         `datasets`.
     """

@@ -117,7 +117,7 @@ print(arrays)
 """
 ```
 
-## Creating a multiscale group
+## Creating a multiscale group from arrays
 
 `pydantic-ome-ngff` provides a direct way to create multiscale metadata from a collection of arrays accompanied by spatial metadata. Note that the data in these arrays will not be accessed -- the arrays are used to create models of Zarr arrays, and so their `shape` and `dtype` attributes are necessary.
 
@@ -304,6 +304,132 @@ print(stored_group.attrs.asdict())
 """
 ```
 
+## Creating a multiscale group directly
+
+It's also possible to create a multiscale group without using the `from_arrays` method demonstrated in the previous example, but it's a bit more involved.
+
+```python
+from pydantic_zarr.v2 import ArraySpec
+from pydantic_ome_ngff.v04.multiscale import Group, MultiscaleMetadata, create_dataset, GroupAttrs
+from pydantic_ome_ngff.v04.axis import Axis
+import numpy as np
+import zarr
+
+# define the axes
+axes = [
+    Axis(name='t', unit='second', type='time'),
+    Axis(name='z', unit='nanometer', type='space'),
+    Axis(name='y', unit='nanometer', type='space'),
+    Axis(name='x', unit='nanometer', type='space')
+]
+
+ndim = len(axes)
+
+# the chunk size we want to use for our Zarr arrays
+store_chunks = (1, 2, 2, 2)
+
+# simulate a multiscale pyramid
+shapes = (10,) * ndim, (5,) * ndim
+dtypes = ('uint8', 'uint8')
+
+# arrays will be named s0, s1, etc
+paths = [f's{idx}' for idx in range(len(shapes))]
+
+# downsampling by 2 in each axis
+scales = [
+    [1.0, 2.0, 2.0, 2.0],
+    [2.0, 4.0, 4.0, 4.0],
+]
+
+# s0 is at the origin; s1 is at the offset induced by downsampling
+translations = [
+    [0.0, 0.0, 0.0, 0.0],
+    [0.5, 1.0, 1.0, 1.0]
+]
+
+datasets = tuple(create_dataset(p, s, t) for p, s, t in zip(paths, scales, translations))
+
+multiscales = MultiscaleMetadata(
+    datasets=datasets,
+    axes=axes)
+
+attributes = GroupAttrs(multiscales=(multiscales,))
+members = {p: ArraySpec(shape=s, dtype=d, chunks=store_chunks) for p,s,d in zip(paths, shapes, dtypes)}
+
+group = Group(attributes=attributes, members = members)
+
+print(group.model_dump())
+"""
+{
+    'zarr_version': 2,
+    'attributes': {
+        'multiscales': (
+            {
+                'version': '0.4',
+                'name': None,
+                'type': None,
+                'metadata': None,
+                'datasets': (
+                    {
+                        'path': 's0',
+                        'coordinateTransformations': (
+                            {'type': 'scale', 'scale': (1.0, 2.0, 2.0, 2.0)},
+                            {
+                                'type': 'translation',
+                                'translation': (0.0, 0.0, 0.0, 0.0),
+                            },
+                        ),
+                    },
+                    {
+                        'path': 's1',
+                        'coordinateTransformations': (
+                            {'type': 'scale', 'scale': (2.0, 4.0, 4.0, 4.0)},
+                            {
+                                'type': 'translation',
+                                'translation': (0.5, 1.0, 1.0, 1.0),
+                            },
+                        ),
+                    },
+                ),
+                'axes': (
+                    {'name': 't', 'type': 'time', 'unit': 'second'},
+                    {'name': 'z', 'type': 'space', 'unit': 'nanometer'},
+                    {'name': 'y', 'type': 'space', 'unit': 'nanometer'},
+                    {'name': 'x', 'type': 'space', 'unit': 'nanometer'},
+                ),
+                'coordinateTransformations': None,
+            },
+        )
+    },
+    'members': {
+        's0': {
+            'zarr_version': 2,
+            'attributes': {},
+            'shape': (10, 10, 10, 10),
+            'chunks': (1, 2, 2, 2),
+            'dtype': '|u1',
+            'fill_value': 0,
+            'order': 'C',
+            'filters': None,
+            'dimension_separator': '/',
+            'compressor': None,
+        },
+        's1': {
+            'zarr_version': 2,
+            'attributes': {},
+            'shape': (5, 5, 5, 5),
+            'chunks': (1, 2, 2, 2),
+            'dtype': '|u1',
+            'fill_value': 0,
+            'order': 'C',
+            'filters': None,
+            'dimension_separator': '/',
+            'compressor': None,
+        },
+    },
+}
+"""
+```
 
 ## Data validation
 
