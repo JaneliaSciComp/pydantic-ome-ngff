@@ -172,7 +172,8 @@ group_model = Group.from_arrays(
     arrays=arrays,
     scales=scales,
     translations=translations,
-    chunks=store_chunks)
+    chunks=store_chunks,
+    compressor=None)
 
 print(group_model.model_dump())
 """
