@@ -119,7 +119,7 @@ print(arrays)
 
 ## Creating a multiscale group from arrays
 
-`pydantic-ome-ngff` provides a direct way to create multiscale metadata from a collection of arrays accompanied by spatial metadata. Note that the data in these arrays will not be accessed -- the arrays are used to create models of Zarr arrays, and so their `shape` and `dtype` attributes are necessary.
+`pydantic-ome-ngff` provides a direct way to create multiscale metadata from a collection of arrays accompanied by spatial metadata. Note that the data in these arrays will not be accessed -- the arrays are used to create models of Zarr arrays, and so their `shape` and `dtype` attributes are necessary, and other attributes (like `chunks`, if present), can be used to template the resulting Zarr arrays.
 
 The basic workflow is as follows:
 
