@@ -219,7 +219,7 @@ def test_multiscale_axis_length(num_axes: int) -> None:
 @pytest.mark.parametrize(
     "scale, translation", [((1, 1), (1, 1, 1)), ((1, 1, 1), (1, 1))]
 )
-def test_coordinate_transforms_invalid_ndims(
+def test_transform_invalid_ndims(
     scale: tuple[int, ...], translation: tuple[int, ...]
 ) -> None:
     tforms = [
@@ -247,7 +247,7 @@ def test_coordinate_transforms_invalid_ndims(
         * 5,
     ],
 )
-def test_coordinate_transforms_invalid_length(
+def test_transform_invalid_length(
     transforms: list[Transform],
 ) -> None:
     with pytest.raises(
@@ -269,7 +269,7 @@ def test_coordinate_transforms_invalid_length(
         ],
     ],
 )
-def test_coordinate_transforms_invalid_first_element(
+def test_transform_invalid_first_element(
     transforms: Tuple[Transform, Transform],
 ) -> None:
     with pytest.raises(
@@ -288,7 +288,7 @@ def test_coordinate_transforms_invalid_first_element(
         ],
     ),
 )
-def test_coordinate_transforms_invalid_second_element(
+def test_transform_invalid_second_element(
     transforms: Tuple[VectorScale, VectorScale],
 ) -> None:
     with pytest.raises(
