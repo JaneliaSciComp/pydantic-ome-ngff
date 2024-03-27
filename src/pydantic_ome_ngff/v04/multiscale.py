@@ -105,7 +105,7 @@ def create_dataset(
         The path, relative to the multiscale group, of the Zarr array.
     scale: Sequence[int | float]:
         The scale parameter for data stored in the Zarr array. This should define the spacing between elements of the coordinate grid of the data.
-    translate: Sequence[int | float]:
+    translation: Sequence[int | float]:
         The translation parameter for data stored in the Zarr array. This should define the origin of the coordinate grid of the data.
 
     Returns
@@ -187,11 +187,11 @@ class MultiscaleMetadata(StrictVersionedBase):
     Attributes
     ----------
 
-    name: Any
+    name: Any, default = `None`
         The name for this multiscale image. Optional. Defaults to `None`.
-    type: Any
+    type: Any, default = `None`
         The type of the multiscale image. Optional. Defaults to `None`.
-    metadata: Dict[str, Any] | None
+    metadata: Dict[str, Any] | None, default = `None`
         Metadata for this multiscale image. Optional. Defaults to `None`.
     datasets: tuple[Dataset, ...]
         A collection of descriptions of arrays that collectively comprise this multiscale image.
@@ -199,7 +199,7 @@ class MultiscaleMetadata(StrictVersionedBase):
         A tuple of `Axis` objects that define the semantics for the different axes of the multiscale image.
     coordinateTransformations: tuple[tx.Scale] | tuple[tx.Scale, tx.Translation] | None. Defaults to `None`.
         Coordinate transformations that express a scaling and translation shared by all elements of
-        `datasets`.
+        `datasets`. Defaults to `None`.
     """
 
     _version = version
