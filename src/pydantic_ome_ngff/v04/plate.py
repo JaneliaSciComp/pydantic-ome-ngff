@@ -1,15 +1,24 @@
 from __future__ import annotations
-from typing import List, Optional
 
-from pydantic import BaseModel, PositiveInt, NonNegativeInt
+from pydantic import (
+    BaseModel,
+    NonNegativeInt,
+    PositiveInt,
+    ValidationError,
+    field_validator,
+)
+from pydantic_zarr.v2 import ArraySpec, GroupSpec
+
 from pydantic_ome_ngff.base import VersionedBase
-
 from pydantic_ome_ngff.v04.base import version
+from typing import Union
+
+import pydantic_ome_ngff.v04.well as well
 
 
 class Acquisition(BaseModel):
-    id: NonNegativeInt
-    name: Optional[str]
+    id: PositiveInt
+    name: str | None = None
     maximumfieldcount: PositiveInt
 
 
@@ -17,26 +26,43 @@ class Entry(BaseModel):
     name: str
 
 
-class Well(BaseModel):
+class WellMetadata(BaseModel):
     # must be {rowName}/{columnName}
     path: str
     rowIndex: NonNegativeInt
     columnIndex: NonNegativeInt
 
 
-class Plate(VersionedBase):
+class PlateMetadata(VersionedBase):
     """
     Plate metadata
     see https://ngff.openmicroscopy.org/0.4/#plate-md
     """
 
-    # we need to put the version here as a private class attribute because the version
-    # is not required by the spec...
+    # the version here as a private class attribute because the version is not required by the spec
     _version = version
-    version: Optional[str] = version
-    name: Optional[str]
-    acquisitions: List[Acquisition]
-    columns: List[Entry]
-    rows: List[Entry]
+    version: str | None = version
+    name: str | None = None
+    acquisitions: tuple[Acquisition, ...]
+    columns: tuple[Entry, ...]
+    rows: tuple[Entry, ...]
     field_count: PositiveInt
-    wells: List[Well]
+    wells: tuple[WellMetadata, ...]
+
+
+class GroupAttrs(BaseModel):
+    plate: PlateMetadata
+
+
+class Group(GroupSpec[GroupAttrs, Union[well.Group, GroupSpec, ArraySpec]]):
+    @field_validator("members", mode="after")
+    @classmethod
+    def contains_well_group(
+        cls, members: Union[Group, GroupSpec, ArraySpec]
+    ) -> Union[Group, GroupSpec, ArraySpec]:
+        """
+        Check that .members contains a WellGroup
+        """
+        if not any(map(lambda v: isinstance(v, well.Group), members.values())):
+            raise ValidationError
+        return members

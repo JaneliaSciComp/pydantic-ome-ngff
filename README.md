@@ -14,9 +14,6 @@ supported metadata models:
 `omero` and `bioformats2raw` are not currently supported, but contributions adding
 support for those models would be welcome.
 
-Support for container-level validation (i.e., checking that multiscale or coordinate 
-transformation metadata is compatible with a hierarchical array / group layout) is being added incrementally. 
-
 ## installation
 
 ```bash
