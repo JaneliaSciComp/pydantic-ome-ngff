@@ -112,8 +112,8 @@ def test_multiscale_unique_axis_names() -> None:
         Dataset(
             path="path",
             coordinateTransformations=(
-                VectorScale(scale=[1, 1, 1]),
-                VectorTranslation(translation=[0, 0, 0]),
+                VectorScale(scale=[1, 1]),
+                VectorTranslation(translation=[0, 0]),
             ),
         )
     ]
@@ -123,7 +123,7 @@ def test_multiscale_unique_axis_names() -> None:
             name="foo",
             axes=axes,
             datasets=datasets,
-            coordinateTransformations=(VectorScale(scale=[1, 1, 1]),),
+            coordinateTransformations=(VectorScale(scale=[1, 1]),),
         )
 
 
@@ -216,10 +216,15 @@ def test_multiscale_axis_length(num_axes: int) -> None:
         )
 
 
-def test_coordinate_transforms_invalid_ndims() -> None:
+@pytest.mark.parametrize(
+    "scale, translation", [((1, 1), (1, 1, 1)), ((1, 1, 1), (1, 1))]
+)
+def test_coordinate_transforms_invalid_ndims(
+    scale: tuple[int, ...], translation: tuple[int, ...]
+) -> None:
     tforms = [
-        VectorScale(scale=(1, 1)),
-        VectorTranslation(translation=(1, 1, 1)),
+        VectorScale(scale=scale),
+        VectorTranslation(translation=translation),
     ]
     with pytest.raises(
         ValidationError,
