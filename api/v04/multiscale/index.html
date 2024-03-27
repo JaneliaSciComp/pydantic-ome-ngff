@@ -921,7 +921,7 @@
         <tr>
           <td><code><span title="pydantic_ome_ngff.v04.multiscale.MultiscaleMetadata.name">name</span></code></td>
           <td>
-                <code><span title="typing.Any">Any</span></code>
+                <code>Any, default = `None`</code>
           </td>
           <td>
             <div class="doc-md-description">
@@ -932,7 +932,7 @@
         <tr>
           <td><code><span title="pydantic_ome_ngff.v04.multiscale.MultiscaleMetadata.type">type</span></code></td>
           <td>
-                <code><span title="typing.Any">Any</span></code>
+                <code>Any, default = `None`</code>
           </td>
           <td>
             <div class="doc-md-description">
@@ -943,7 +943,7 @@
         <tr>
           <td><code><span title="pydantic_ome_ngff.v04.multiscale.MultiscaleMetadata.metadata">metadata</span></code></td>
           <td>
-                <code><span title="typing.Dict">Dict</span>[str, <span title="typing.Any">Any</span>] | None</code>
+                <code>Dict[str, Any] | None, default = `None`</code>
           </td>
           <td>
             <div class="doc-md-description">
@@ -981,7 +981,7 @@
           <td>
             <div class="doc-md-description">
               <p>Coordinate transformations that express a scaling and translation shared by all elements of
-<code>datasets</code>.</p>
+<code>datasets</code>. Defaults to <code>None</code>.</p>
             </div>
           </td>
         </tr>
@@ -2078,8 +2078,9 @@ if present, is a translation transform, and that there are only 1 or 2 transform
           </td>
         </tr>
         <tr>
-          <td><code>translate</code></td>
+          <td><code>translation</code></td>
           <td>
+                <code><span title="typing.Sequence">Sequence</span>[int | float]</code>
           </td>
           <td>
             <div class="doc-md-description">
@@ -2158,7 +2159,7 @@ if present, is a translation transform, and that there are only 1 or 2 transform
 </span><span id="__span-0-105"><a id="__codelineno-0-105" name="__codelineno-0-105"></a><span class="sd">        The path, relative to the multiscale group, of the Zarr array.</span>
 </span><span id="__span-0-106"><a id="__codelineno-0-106" name="__codelineno-0-106"></a><span class="sd">    scale: Sequence[int | float]:</span>
 </span><span id="__span-0-107"><a id="__codelineno-0-107" name="__codelineno-0-107"></a><span class="sd">        The scale parameter for data stored in the Zarr array. This should define the spacing between elements of the coordinate grid of the data.</span>
-</span><span id="__span-0-108"><a id="__codelineno-0-108" name="__codelineno-0-108"></a><span class="sd">    translate: Sequence[int | float]:</span>
+</span><span id="__span-0-108"><a id="__codelineno-0-108" name="__codelineno-0-108"></a><span class="sd">    translation: Sequence[int | float]:</span>
 </span><span id="__span-0-109"><a id="__codelineno-0-109" name="__codelineno-0-109"></a><span class="sd">        The translation parameter for data stored in the Zarr array. This should define the origin of the coordinate grid of the data.</span>
 </span><span id="__span-0-110"><a id="__codelineno-0-110" name="__codelineno-0-110"></a>
 </span><span id="__span-0-111"><a id="__codelineno-0-111" name="__codelineno-0-111"></a><span class="sd">    Returns</span>
