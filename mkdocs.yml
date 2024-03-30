@@ -5,7 +5,7 @@ site_description: >-
   Pydantic models for the OME-NGFF file format.
 
 # Repository
-repo_name: janelia-cellmap/pydantic-ome-ngff
+repo_name: janeliascicomp/pydantic-ome-ngff
 repo_url: https://github.com/janeliascicomp/pydantic-ome-ngff
 
 # Copyright
