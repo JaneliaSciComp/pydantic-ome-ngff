@@ -273,8 +273,8 @@ class Group(GroupSpec[GroupAttrs, Union[ArraySpec, GroupSpec]]):
             multi_meta_maybe = guess.attributes["multiscales"]
         except KeyError as e:
             msg = (
-                "Failed to find mandatory `multiscales` key in the attributes of the zarr group at ",
-                f"{node.store.path}/{node.path}",
+                "Failed to find mandatory `multiscales` key in the attributes of the Zarr group at "
+                f"{node.store}://{node.path}."
             )
             raise ValueError(msg) from e
 
@@ -286,18 +286,18 @@ class Group(GroupSpec[GroupAttrs, Union[ArraySpec, GroupSpec]]):
                 try:
                     array = zarr.open_array(store=node.store, path=array_path, mode="r")
                     array_spec = ArraySpec.from_zarr(array)
-                except ArrayNotFoundError:
+                except ArrayNotFoundError as e:
                     msg = (
-                        f"Expected to find an array at {array_path}, ",
-                        "but no array was found there.",
+                        f"Expected to find an array at {array_path}, "
+                        "but no array was found there."
                     )
-                    raise ArrayNotFoundError(msg)
-                except ContainsGroupError:
+                    raise ValueError(msg) from e
+                except ContainsGroupError as e:
                     msg = (
-                        f"Expected to find an array at {array_path}, ",
-                        "but a group was found there instead.",
+                        f"Expected to find an array at {array_path}, "
+                        "but a group was found there instead."
                     )
-                    raise ContainsGroupError(msg)
+                    raise ValueError(msg) from e
                 members_tree_flat["/" + dataset.path] = array_spec
         members_normalized = GroupSpec.from_flat(members_tree_flat)
 
@@ -314,8 +314,8 @@ class Group(GroupSpec[GroupAttrs, Union[ArraySpec, GroupSpec]]):
         *,
         paths: Sequence[str],
         axes: Sequence[Axis],
-        scales: Sequence[tuple[int | float]],
-        translations: Sequence[tuple[int | float]],
+        scales: Sequence[tuple[int | float, ...]],
+        translations: Sequence[tuple[int | float, ...]],
         name: str | None = None,
         type: str | None = None,
         metadata: Dict[str, Any] | None = None,
@@ -364,14 +364,14 @@ class Group(GroupSpec[GroupAttrs, Union[ArraySpec, GroupSpec]]):
 
         chunks_normalized = normalize_chunks(
             chunks,
-            shapes=[s.shape for s in arrays],
-            typesizes=[s.dtype.itemsize for s in arrays],
+            shapes=tuple(s.shape for s in arrays),
+            typesizes=tuple(s.dtype.itemsize for s in arrays),
         )
 
         members_flat = {
             "/" + key.lstrip("/"): ArraySpec.from_array(
-                arr,
-                cnks,
+                array=arr,
+                chunks=cnks,
                 attributes={},
                 compressor=compressor,
                 filters=None,
@@ -385,16 +385,16 @@ class Group(GroupSpec[GroupAttrs, Union[ArraySpec, GroupSpec]]):
             name=name,
             type=type,
             metadata=metadata,
-            axes=axes,
-            datasets=[
+            axes=tuple(axes),
+            datasets=tuple(
                 create_dataset(path=path, scale=scale, translation=translation)
                 for path, scale, translation in zip(paths, scales, translations)
-            ],
+            ),
             coordinateTransformations=None,
         )
         return cls(
             members=GroupSpec.from_flat(members_flat).members,
-            attributes=GroupAttrs(multiscales=[multimeta]),
+            attributes=GroupAttrs(multiscales=(multimeta,)),
         )
 
     @model_validator(mode="after")
@@ -464,8 +464,10 @@ class Group(GroupSpec[GroupAttrs, Union[ArraySpec, GroupSpec]]):
 
 
 def normalize_chunks(
-    chunks: Any, shapes: tuple[tuple[int, ...]], typesizes: tuple[tuple[int]]
-) -> tuple[tuple[int, ...]]:
+    chunks: Any,
+    shapes: tuple[tuple[int, ...], ...],
+    typesizes: tuple[int, ...],
+) -> tuple[tuple[int, ...], ...]:
     """
     If chunks is "auto", then use zarr default chunking based on the largest array for all the arrays.
     If chunks is a sequence of ints, then use those chunks for all arrays.
@@ -479,7 +481,7 @@ def normalize_chunks(
         return (guess_chunks(*params_sorted_descending[0]),) * len(shapes)
     if isinstance(chunks, Sequence):
         if all(isinstance(element, int) for element in chunks):
-            return (chunks,) * len(shapes)
+            return (tuple(chunks),) * len(shapes)
         if all(isinstance(element, Sequence) for element in chunks):
             if all(map(lambda v: all(isinstance(k, int) for k in v), chunks)):
                 return tuple(map(tuple, chunks))
