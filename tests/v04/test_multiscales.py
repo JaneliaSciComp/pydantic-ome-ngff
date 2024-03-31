@@ -452,6 +452,10 @@ def test_from_zarr_missing_array(
     store_type: Literal["memory_store", "fsstore_local", "nested_directory_store"],
     request: pytest.FixtureRequest,
 ) -> None:
+    """
+    Test that creating a multiscale Group fails when an expected Zarr array is missing
+    or is a group instead of an array
+    """
     store: MemoryStore | NestedDirectoryStore | FSStore = request.getfixturevalue(
         store_type
     )
@@ -488,4 +492,7 @@ def test_from_zarr_missing_array(
 
 
 def test_hashable(default_multiscale: MultiscaleMetadata) -> None:
+    """
+    Test that `MultiscaleMetadata` can be hashed
+    """
     assert set(default_multiscale) == set(default_multiscale)
