@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Dict, Literal, Tuple
+    from typing import Literal
     from zarr.storage import MemoryStore, NestedDirectoryStore, FSStore
 
 from pydantic import ValidationError
@@ -220,7 +220,7 @@ def test_transform_invalid_length(
     ],
 )
 def test_transform_invalid_first_element(
-    transforms: Tuple[Transform, Transform],
+    transforms: tuple[Transform, Transform],
 ) -> None:
     with pytest.raises(
         ValidationError,
@@ -239,7 +239,7 @@ def test_transform_invalid_first_element(
     ),
 )
 def test_transform_invalid_second_element(
-    transforms: Tuple[VectorScale, VectorScale],
+    transforms: tuple[VectorScale, VectorScale],
 ) -> None:
     with pytest.raises(
         ValidationError,
@@ -345,7 +345,7 @@ def test_from_arrays(
     name: str | None,
     type: str | None,
     path_pattern: str,
-    metadata: Dict[str, int] | None,
+    metadata: dict[str, int] | None,
     ndim: int,
     chunks: Literal["auto", "tuple", "tuple-of-tuple"],
     order: Literal["auto", "C", "F"],
@@ -452,6 +452,10 @@ def test_from_zarr_missing_array(
     store_type: Literal["memory_store", "fsstore_local", "nested_directory_store"],
     request: pytest.FixtureRequest,
 ) -> None:
+    """
+    Test that creating a multiscale Group fails when an expected Zarr array is missing
+    or is a group instead of an array
+    """
     store: MemoryStore | NestedDirectoryStore | FSStore = request.getfixturevalue(
         store_type
     )
@@ -485,3 +489,10 @@ def test_from_zarr_missing_array(
     )
     with pytest.raises(ValueError, match=match):
         Group.from_zarr(broken_group)
+
+
+def test_hashable(default_multiscale: MultiscaleMetadata) -> None:
+    """
+    Test that `MultiscaleMetadata` can be hashed
+    """
+    assert set(default_multiscale) == set(default_multiscale)

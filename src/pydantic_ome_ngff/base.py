@@ -1,9 +1,9 @@
 from pydantic import BaseModel
 
 
-class StrictBase(BaseModel, extra="forbid"):
+class StrictBase(BaseModel, extra="forbid", frozen=True):
     """
-    A pydantic basemodel that refuses extra fields.
+    A frozen pydantic basemodel that refuses extra fields.
     """
 
 

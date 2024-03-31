@@ -168,7 +168,7 @@ def ensure_dimensionality(
 
 
 def array_transform_consistency(
-    array: ArrayLike, transforms: Sequence[VectorScale, VectorTranslation]
+    array: ArrayLike, transforms: Sequence[VectorScale | VectorTranslation]
 ) -> bool:
     """
     Check if an array is consistent, in terms of dimensionality, with a collection of transforms.
