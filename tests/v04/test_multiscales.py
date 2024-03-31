@@ -31,15 +31,15 @@ import operator
 
 @pytest.fixture
 def default_multiscale() -> MultiscaleMetadata:
-    axes = [
+    axes = (
         Axis(name="c", type="channel", unit=None),
         Axis(name="z", type="space", unit="meter"),
         Axis(name="x", type="space", unit="meter"),
         Axis(name="y", type="space", unit="meter"),
-    ]
+    )
     rank = len(axes)
     num_datasets = 3
-    datasets = [
+    datasets = tuple(
         Dataset(
             path=f"path{idx}",
             coordinateTransformations=(
@@ -48,7 +48,7 @@ def default_multiscale() -> MultiscaleMetadata:
             ),
         )
         for idx in range(num_datasets)
-    ]
+    )
 
     multi = MultiscaleMetadata(
         name="foo",
