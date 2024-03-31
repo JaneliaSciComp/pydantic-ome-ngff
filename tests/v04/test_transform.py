@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Sequence, Tuple
+from typing import Tuple, Type
 import pytest
 from pydantic_ome_ngff.v04.transform import (
     VectorScale,
@@ -44,22 +44,34 @@ def test_scale_translation(
 
 
 @pytest.mark.parametrize(
-    "data",
+    "scale, translation",
     [
-        (VectorScale(scale=(10, 10)), VectorTranslation(translation=(1,))),
-        (VectorScale(scale=(10,)), VectorTranslation(translation=(1, 1))),
+        ((2, 2), (1, 1, 1)),
+        ((2, 2, 2), (1, 1)),
     ],
 )
-def test_ensure_dimensionality(data: Sequence[VectorScale | VectorTranslation]) -> None:
+def test_ensure_dimensionality(
+    scale: tuple[int, ...], translation: tuple[int, ...]
+) -> None:
     with pytest.raises(
         ValueError, match="The transforms have inconsistent dimensionality."
     ):
-        ensure_dimensionality(data)
+        ensure_dimensionality(
+            transforms=(
+                VectorScale(scale=scale),
+                VectorTranslation(translation=translation),
+            )
+        )
 
 
-def test_ndim() -> None:
-    tx = VectorScale(scale=(1, 1, 1))
-    assert ndim(tx) == 3
-
-    tx = VectorTranslation(translation=(1, 1, 1))
-    assert ndim(tx) == 3
+@pytest.mark.parametrize("num_dims", ((1, 3, 5)))
+@pytest.mark.parametrize("transform", [VectorTranslation, VectorScale])
+def test_ndim(
+    num_dims: int, transform: Type[VectorTranslation] | Type[VectorScale]
+) -> None:
+    if transform == VectorScale:
+        params = {"scale": (1,) * num_dims}
+    else:
+        params = {"translation": (1,) * num_dims}
+    tx = transform(**params)
+    assert ndim(tx) == num_dims
