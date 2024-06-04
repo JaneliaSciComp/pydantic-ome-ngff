@@ -25,6 +25,10 @@ class Identity(StrictBase):
 
     type: Literal["identity"] = "identity"
 
+    @property
+    def ndim(self):
+        raise NotImplementedError
+
 
 class PathTranslation(StrictBase):
     """
@@ -44,6 +48,10 @@ class PathTranslation(StrictBase):
     type: Literal["translation"] = "translation"
     path: str
 
+    @property
+    def ndim(self):
+        raise NotImplementedError
+
 
 class PathScale(StrictBase):
     """
@@ -61,6 +69,10 @@ class PathScale(StrictBase):
 
     type: Literal["scale"] = "scale"
     path: str
+
+    @property
+    def ndim(self):
+        raise NotImplementedError
 
 
 class VectorTranslation(StrictBase):
@@ -80,6 +92,10 @@ class VectorTranslation(StrictBase):
     type: Literal["translation"] = "translation"
     translation: Annotated[tuple[float | int, ...], BeforeValidator(listify_numpy)]
 
+    @property
+    def ndim(self):
+        return ndim(self)
+
 
 class VectorScale(StrictBase):
     """
@@ -97,6 +113,10 @@ class VectorScale(StrictBase):
 
     type: Literal["scale"] = "scale"
     scale: Annotated[tuple[float | int, ...], BeforeValidator(listify_numpy)]
+
+    @property
+    def ndim(self):
+        return ndim(self)
 
 
 def ndim(

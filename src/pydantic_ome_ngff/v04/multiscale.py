@@ -218,6 +218,17 @@ class MultiscaleMetadata(StrictVersionedBase):
         tx.Scale, tx.Translation
     ] | None = None
 
+    @model_validator(mode="after")
+    def validate_transforms(self) -> "MultiscaleMetadata":
+        """
+        Ensure that the dimensionality of the top-level coordinate trnasforms, if present,
+        is consistent with the rest of the model.
+        """
+        ctx = self.coordinateTransformations
+        if ctx is not None:
+            scale_ndim = ctx[0].ndim
+            tx.ensure_dimensionality(ctx)
+
 
 class GroupAttrs(BaseModel):
     """
