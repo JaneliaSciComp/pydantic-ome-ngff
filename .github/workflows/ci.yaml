@@ -16,20 +16,27 @@ jobs:
       - run: poetry run pre-commit run --all-files
 
   test:
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version:
-          - "3.9"
-          - "3.10"
-          - "3.10"
-          - "3.12"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      name: py=${{ matrix.python-version }}
+      runs-on: ubuntu-latest
+      strategy:
+        matrix:
+          python-version: ['3.9', '3.10', '3.11']
+      steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - uses: abatilo/actions-poetry@v2
-      - run: poetry install
-      - run: poetry run pytest --verbose --cov src/pydantic_ome_ngff
+          cache: 'pip'
+      - name: Install Hatch
+        run: |
+          python -m pip install --upgrade pip 
+          pip install hatch
+      - name: Set Up Hatch Env
+        run: |
+          hatch env create test.py${{ matrix.python-version }}
+          hatch env run -e test.py${{ matrix.python-version }} list-env
+      - name: Run Tests
+        run: |
+          hatch env run --env test.py${{ matrix.python-version }} run
+
