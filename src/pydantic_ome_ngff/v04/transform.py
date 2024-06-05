@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from typing import Annotated, Literal, Sequence, Union
 
-from pydantic import BeforeValidator
-
 from pydantic_ome_ngff.base import StrictBase
 
+from pydantic import BeforeValidator
 from pydantic_ome_ngff.utils import ArrayLike, listify_numpy
 
 
@@ -130,7 +129,8 @@ def ndim(
     elif hasattr(transform, "translation"):
         return len(transform.translation)
     else:
-        raise TypeError(f"Cannot infer the dimensionality of {type(transform)}")
+        msg = f"Cannot infer the dimensionality of {type(transform)}"
+        raise TypeError(msg)
 
 
 def scale_translation(

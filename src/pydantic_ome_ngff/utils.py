@@ -1,14 +1,15 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, runtime_checkable
+
 from collections import Counter
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
+
 import numpy as np
 
 if TYPE_CHECKING:
-    from typing import Dict, Iterable, Hashable, Tuple, Any
+    from typing import Any, Hashable, Iterable
 
 
-def duplicates(values: Iterable[Hashable]) -> Dict[Hashable, int]:
+def duplicates(values: Iterable[Hashable]) -> dict[Hashable, int]:
     """
     Takes a sequence of hashable elements and returns a dict where the keys are the
     elements of the input that occurred at least once, and the values are the
@@ -20,13 +21,13 @@ def duplicates(values: Iterable[Hashable]) -> Dict[Hashable, int]:
 
 @runtime_checkable
 class ArrayLike(Protocol):
-    shape: Tuple[int, ...]
+    shape: tuple[int, ...]
     dtype: np.dtype[Any]
 
 
 @runtime_checkable
 class ChunkedArrayLike(ArrayLike, Protocol):
-    chunks: Tuple[int, ...]
+    chunks: tuple[int, ...]
 
 
 def listify_numpy(data: Any) -> Any:

@@ -1,7 +1,9 @@
 from __future__ import annotations
+
 from typing import Literal
-from pydantic_ome_ngff.latest.base import version
+
 import pydantic_ome_ngff.v04.multiscale as msv04
+from pydantic_ome_ngff.latest.base import version
 
 
 class Dataset(msv04.Dataset):
@@ -19,8 +21,6 @@ class Dataset(msv04.Dataset):
     coordinateTransformations: ctx.ScaleTransform | ctx.TranslationTransform
         The coordinate transformations for this image.
     """
-
-    ...
 
 
 class MultiscaleMetadata(msv04.MultiscaleMetadata):

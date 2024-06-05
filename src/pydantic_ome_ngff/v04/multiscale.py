@@ -1,37 +1,42 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
+
 from collections import Counter
-from typing_extensions import Literal
+from typing import TYPE_CHECKING
+
 import numpy as np
+from typing_extensions import Literal
 
 if TYPE_CHECKING:
-    from typing_extensions import Self
     from numcodecs.abc import Codec
+    from typing_extensions import Self
 
-from typing import Annotated, Any, Dict, Sequence, Union, cast
+from typing import Annotated, Any, Sequence, Union, cast
+
+import zarr
+from numcodecs import Zstd
 from pydantic import AfterValidator, BaseModel, Field, model_validator
-from pydantic_zarr.v2 import GroupSpec, ArraySpec
+from pydantic_zarr.v2 import ArraySpec, GroupSpec
+from zarr.errors import ArrayNotFoundError, ContainsGroupError
+from zarr.util import guess_chunks
+
+import pydantic_ome_ngff.v04.transform as tx
+from pydantic_ome_ngff.base import StrictBase, StrictVersionedBase
 from pydantic_ome_ngff.utils import (
     ArrayLike,
     ChunkedArrayLike,
     duplicates,
 )
-from pydantic_ome_ngff.base import StrictBase, StrictVersionedBase
-from pydantic_ome_ngff.v04.base import version
 from pydantic_ome_ngff.v04.axis import Axis, AxisType
-import pydantic_ome_ngff.v04.transform as tx
-from numcodecs import Zstd
-import zarr
-from zarr.errors import ArrayNotFoundError, ContainsGroupError
-from zarr.util import guess_chunks
+from pydantic_ome_ngff.v04.base import version
 
 VALID_NDIM = (2, 3, 4, 5)
 NUM_TX_MAX = 2
+DEFAULT_COMPRESSOR = Zstd(3)
 
 
 def ensure_scale_translation(
-    transforms: Sequence[Union[tx.VectorScale, tx.VectorTranslation]],
-) -> Sequence[Union[tx.VectorScale, tx.VectorTranslation]]:
+    transforms: Sequence[tx.VectorScale | tx.VectorTranslation],
+) -> Sequence[tx.VectorScale | tx.VectorTranslation]:
     """
     Ensures that the first element is a scale transformation, the second element,
     if present, is a translation transform, and that there are only 1 or 2 transforms.
@@ -219,7 +224,7 @@ class MultiscaleMetadata(StrictVersionedBase):
     ] | None = None
 
     @model_validator(mode="after")
-    def validate_transforms(self) -> "MultiscaleMetadata":
+    def validate_transforms(self) -> MultiscaleMetadata:
         """
         Ensure that the dimensionality of the top-level coordinateTransformations, if present,
         is consistent with the rest of the model.
@@ -231,7 +236,14 @@ class MultiscaleMetadata(StrictVersionedBase):
 
             # check that the dimensionality matches the dimensionality of the dataset ctx
             ndim = ctx[0].ndim
-            assert ndim == self.datasets[0].coordinateTransformations[0].ndim
+            dset_scale_ndim = self.datasets[0].coordinateTransformations[0].ndim
+            if ndim != dset_scale_ndim:
+                msg = (
+                    f"Dimensionality of multiscale.coordinateTransformations {ndim} "
+                    "does not match dimensionality of coordinateTransformations defined in"
+                    f"multiscale.datasets ({dset_scale_ndim}) "
+                )
+                raise ValueError(msg)
 
         return self
 
@@ -299,7 +311,7 @@ class Group(GroupSpec[GroupAttrs, Union[ArraySpec, GroupSpec]]):
         members_tree_flat = {}
         for multiscale in multi_meta.multiscales:
             for dataset in multiscale.datasets:
-                array_path = "/".join([node.path, dataset.path])
+                array_path = f"{node.path}/{dataset.path}"
                 try:
                     array = zarr.open_array(store=node.store, path=array_path, mode="r")
                     array_spec = ArraySpec.from_zarr(array)
@@ -321,8 +333,7 @@ class Group(GroupSpec[GroupAttrs, Union[ArraySpec, GroupSpec]]):
         guess_inferred_members = guess.model_copy(
             update={"members": {**guess.members, **members_normalized.members}}
         )
-        result = cls(**guess_inferred_members.model_dump())
-        return result
+        return cls(**guess_inferred_members.model_dump())
 
     @classmethod
     def from_arrays(
@@ -335,9 +346,9 @@ class Group(GroupSpec[GroupAttrs, Union[ArraySpec, GroupSpec]]):
         translations: Sequence[tuple[int | float, ...]],
         name: str | None = None,
         type: str | None = None,
-        metadata: Dict[str, Any] | None = None,
+        metadata: dict[str, Any] | None = None,
         chunks: tuple[int, ...] | tuple[tuple[int, ...]] | Literal["auto"] = "auto",
-        compressor: Codec = Zstd(3),
+        compressor: Codec = DEFAULT_COMPRESSOR,
         fill_value: Any = 0,
         order: Literal["C", "F", "auto"] = "auto",
     ) -> Self:
@@ -415,7 +426,7 @@ class Group(GroupSpec[GroupAttrs, Union[ArraySpec, GroupSpec]]):
         )
 
     @model_validator(mode="after")
-    def check_arrays_exist(self) -> "Group":
+    def check_arrays_exist(self) -> Group:
         """
         Check that the arrays referenced in the `multiscales` metadata are actually contained in this group.
         """
@@ -442,7 +453,7 @@ class Group(GroupSpec[GroupAttrs, Union[ArraySpec, GroupSpec]]):
         return self
 
     @model_validator(mode="after")
-    def check_array_ndim(self) -> "Group":
+    def check_array_ndim(self) -> Group:
         """
         Check that all the arrays referenced by the `multiscales` metadata have dimensionality consistent with the
         `coordinateTransformations` metadata.
@@ -500,12 +511,10 @@ def normalize_chunks(
         if all(isinstance(element, int) for element in chunks):
             return (tuple(chunks),) * len(shapes)
         if all(isinstance(element, Sequence) for element in chunks):
-            if all(map(lambda v: all(isinstance(k, int) for k in v), chunks)):
+            if all(all(isinstance(k, int) for k in v) for v in chunks):
                 return tuple(map(tuple, chunks))
             else:
-                raise ValueError(
-                    f"Expected a sequence of sequences of ints. Got {chunks} instead."
-                )
-    raise TypeError(
-        f'Input must be a sequence or the string "auto". Got {type(chunks)}'
-    )
+                msg = f"Expected a sequence of sequences of ints. Got {chunks} instead."
+                raise ValueError(msg)
+    msg = f'Input must be a sequence or the string "auto". Got {type(chunks)}'
+    raise TypeError(msg)

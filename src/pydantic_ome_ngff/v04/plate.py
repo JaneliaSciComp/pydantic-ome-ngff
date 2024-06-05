@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Union
+
 from pydantic import (
     BaseModel,
     NonNegativeInt,
@@ -10,10 +12,8 @@ from pydantic import (
 from pydantic_zarr.v2 import ArraySpec, GroupSpec
 
 from pydantic_ome_ngff.base import VersionedBase
+from pydantic_ome_ngff.v04 import well
 from pydantic_ome_ngff.v04.base import version
-from typing import Union
-
-import pydantic_ome_ngff.v04.well as well
 
 
 class Acquisition(BaseModel):
@@ -58,11 +58,11 @@ class Group(GroupSpec[GroupAttrs, Union[well.Group, GroupSpec, ArraySpec]]):
     @field_validator("members", mode="after")
     @classmethod
     def contains_well_group(
-        cls, members: Union[Group, GroupSpec, ArraySpec]
-    ) -> Union[Group, GroupSpec, ArraySpec]:
+        cls, members: Group | GroupSpec | ArraySpec
+    ) -> Group | GroupSpec | ArraySpec:
         """
         Check that .members contains a WellGroup
         """
-        if not any(map(lambda v: isinstance(v, well.Group), members.values())):
+        if not any(isinstance(v, well.Group) for v in members.values()):
             raise ValidationError
         return members

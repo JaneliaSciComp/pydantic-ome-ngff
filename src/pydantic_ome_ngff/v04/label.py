@@ -1,16 +1,14 @@
 from __future__ import annotations
-import warnings
-from typing import Literal, Optional, Annotated, TYPE_CHECKING
 
-if TYPE_CHECKING:
-    pass
+import warnings
+from typing import Annotated, Literal
 
 from pydantic import AfterValidator, BaseModel, Field, model_validator
+
 from pydantic_ome_ngff.base import VersionedBase
 from pydantic_ome_ngff.utils import duplicates
+from pydantic_ome_ngff.v04 import multiscale
 from pydantic_ome_ngff.v04.base import version as NGFF_VERSION
-
-import pydantic_ome_ngff.v04.multiscale as multiscale
 
 ConInt = Annotated[int, Field(strict=True, ge=0, le=255)]
 RGBA = tuple[ConInt, ConInt, ConInt, ConInt]
@@ -22,12 +20,12 @@ class Color(BaseModel):
     """
 
     label_value: int = Field(..., serialization_alias="label-value")
-    rgba: Optional[RGBA]
+    rgba: RGBA | None
 
 
 class Source(BaseModel):
-    # todo: add validation that this path resolves to something
-    image: Optional[str] = "../../"
+    # TODO: add validation that this path resolves to something
+    image: str | None = "../../"
 
 
 class Property(BaseModel):
@@ -95,9 +93,9 @@ class ImageLabel(VersionedBase):
     version: Annotated[
         Literal["0.4"] | None, AfterValidator(parse_version)
     ] = NGFF_VERSION
-    colors: Annotated[Optional[tuple[Color, ...]], AfterValidator(parse_colors)] = None
-    properties: Optional[tuple[Property, ...]] = None
-    source: Optional[Source] = None
+    colors: Annotated[tuple[Color, ...] | None, AfterValidator(parse_colors)] = None
+    properties: tuple[Property, ...] | None = None
+    source: Source | None = None
 
     @model_validator(mode="after")
     def parse_model(self) -> ImageLabel:
