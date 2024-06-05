@@ -11,6 +11,7 @@ pip install -U pydantic-ome-ngff
 ## development
 
 1. clone this repo
-2. install [poetry](https://python-poetry.org/)
-3. run `poetry install --with dev` to get dev dependencies
+2. install [hatch]([https://python-poetry.org/](https://hatch.pypa.io/latest/)
 4. run `pre-commit install` to install [pre-commit hooks](https://github.com/JaneliaSciComp/pydantic-ome-ngff/blob/main/.pre-commit-config.yaml)
+5. edit the code
+6. run tests with `hatch run:test run`
