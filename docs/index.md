@@ -467,7 +467,7 @@ except ValidationError as e:
     """
     1 validation error for Group
       Value error, Dataset s0 was specified in multiscale metadata, but no array with that name was found in the hierarchy. All arrays referenced in multiscale metadata must be contained in the group. [type=value_error, input_value={'zarr_version': 2, 'attr...: 'zstd', 'level': 3}}}}, input_type=dict]
-        For further information visit https://errors.pydantic.dev/2.6/v/value_error
+        For further information visit https://errors.pydantic.dev/2.7/v/value_error
     """
 
 group_model_wrong_array = group_model.model_dump()
@@ -482,6 +482,6 @@ except ValidationError as e:
     """
     1 validation error for Group
       Value error, Transform type='scale' scale=(1, 1) has dimensionality 2, which does not match the dimensionality of the array found in this group at s0 (1). Transform dimensionality must match array dimensionality. [type=value_error, input_value={'zarr_version': 2, 'attr...: 'zstd', 'level': 3}}}}, input_type=dict]
-        For further information visit https://errors.pydantic.dev/2.6/v/value_error
+        For further information visit https://errors.pydantic.dev/2.7/v/value_error
     """
 ```

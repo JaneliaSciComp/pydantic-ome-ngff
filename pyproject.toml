@@ -1,35 +1,93 @@
-[tool.poetry]
-name = "pydantic-ome-ngff"
-version = "0.5.0"
-description = "Pydantic models for the OME-NGFF"
-authors = ["Davis Vann Bennett <davis.v.bennett@gmail.com>"]
-license = "MIT"
-readme = "README.md"
-packages = [{include = "pydantic_ome_ngff", from="src"}]
-
-[tool.poetry.dependencies]
-python = "^3.9"
-pydantic-zarr = "0.7.0"
-
-[tool.poetry.group.dev.dependencies]
-pre-commit = "^3.0.4"
-isort = "^5.12.0"
-jsonschema = "^4.17.3"
-pytest = "^7.2.1"
-mypy = "^1.0.1"
-requests = "^2.28.2"
-pytest-cov = "^4.0.0"
-fsspec = {version = "^2024.2.0", extras=["http"]}
-
-
-[tool.poetry.group.docs.dependencies]
-mkdocs-material = "^9.5.5"
-mkdocstrings = {extras = ["python"], version = "^0.24.0"}
-pytest-examples = "^0.0.9"
-
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pydantic-ome-ngff"
+dynamic = ["version"]
+description = "Pydantic models for the OME-NGFF file format."
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+keywords = ["ngff", "pydantic", "ome-ngff", "zarr"]
+authors = [
+  { name = "Davis Vann Benntt", email = "davis.v.bennett@gmail.com" },
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: Implementation :: CPython",
+]
+dependencies = [
+  "pydantic-zarr == 0.7.0"
+]
+
+[project.urls]
+Documentation = "https://janeliascicomp.github.io/pydantic-ome-ngff"
+Issues = "https://github.com/janeliascicomp/pydantic-ome-ngff/issues"
+Source = "https://github.com/janeliascicomp/pydantic-ome-ngff"
+
+[tool.hatch]
+version.source = "vcs"
+build.hooks.vcs.version-file = "src/pydantic_ome_ngff/_version.py"
+
+[tool.hatch.envs.test]
+dependencies = [
+  "pytest==8.0.0",
+  "pytest-examples==0.0.9",
+  "fsspec[http]==2024.2.0",
+  "requests==2.32.3",
+  "pytest-cov==5.0.0",
+  "jsonschema==4.17.3"
+  ]
+
+[tool.hatch.envs.test.scripts]
+run-coverage = "pytest --cov-config=pyproject.toml --cov=pkg --cov=tests"
+run = "run-coverage --no-cov"
+run-verbose = "run-coverage --verbose"
+
+[[tool.hatch.envs.test.matrix]]
+python = ["3.9", "3.10", "3.11"]
+
+[tool.hatch.envs.types]
+extra-dependencies = [
+  "mypy>=1.0.0",
+]
+
+[tool.hatch.envs.types.scripts]
+check = "mypy --install-types --non-interactive {args:src/pydantic_ome_ngff tests}"
+
+[tool.hatch.env.docs]
+dependencies = [
+  "mkdocs-material==9.5.5",
+  "mkdocstrings==0.24.0"
+  ]
+
+[tool.hatch.envs.docs.scripts]
+serve = "mkdocs serve --watch=src"
+
+[tool.coverage.run]
+source_pkgs = ["pydantic_ome_ngff", "tests"]
+branch = true
+parallel = true
+omit = [
+  "src/pydantic_ome_ngff/__about__.py",
+]
+
+[tool.coverage.paths]
+pydantic_ome_ngff = ["src/pydantic_ome_ngff", "*/pydantic-ome-ngff/src/pydantic_ome_ngff"]
+tests = ["tests", "*/pydantic-ome-ngff/tests"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
 
 [tool.mypy]
 plugins = [
@@ -51,31 +109,3 @@ init_forbid_extra = true
 init_typed = true
 warn_required_dynamic_aliases = true
 warn_untyped_fields = true
-
-
-[tool.coverage.run]
-source = ['src']
-branch = true
-context = '${CONTEXT}'
-
-[tool.coverage.report]
-precision = 2
-exclude_lines = [
-    'pragma: no cover',
-    'raise NotImplementedError',
-    'if TYPE_CHECKING:',
-    'if typing.TYPE_CHECKING:',
-    '@overload',
-    '@typing.overload',
-    '\(Protocol\):$',
-    'typing.assert_never',
-    'assert_never',
-]
-
-[tool.coverage.paths]
-source = [
-    'src/'
-]
-
-[tool.coverage.html]
-directory = "htmlcov"

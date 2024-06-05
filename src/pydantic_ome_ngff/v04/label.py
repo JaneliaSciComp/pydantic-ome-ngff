@@ -1,19 +1,17 @@
 from __future__ import annotations
-import warnings
-from typing import Literal, Optional, Tuple, Annotated, TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from typing import List
+import warnings
+from typing import Annotated, Literal
 
 from pydantic import AfterValidator, BaseModel, Field, model_validator
+
 from pydantic_ome_ngff.base import VersionedBase
 from pydantic_ome_ngff.utils import duplicates
+from pydantic_ome_ngff.v04 import multiscale
 from pydantic_ome_ngff.v04.base import version as NGFF_VERSION
 
-import pydantic_ome_ngff.v04.multiscale as multiscale
-
 ConInt = Annotated[int, Field(strict=True, ge=0, le=255)]
-RGBA = Tuple[ConInt, ConInt, ConInt, ConInt]
+RGBA = tuple[ConInt, ConInt, ConInt, ConInt]
 
 
 class Color(BaseModel):
@@ -22,19 +20,19 @@ class Color(BaseModel):
     """
 
     label_value: int = Field(..., serialization_alias="label-value")
-    rgba: Optional[RGBA]
+    rgba: RGBA | None
 
 
 class Source(BaseModel):
-    # todo: add validation that this path resolves to something
-    image: Optional[str] = "../../"
+    # TODO: add validation that this path resolves to something
+    image: str | None = "../../"
 
 
 class Property(BaseModel):
     label_value: int = Field(..., serialization_alias="label-value")
 
 
-def parse_colors(colors: List[Color] | None) -> List[Color] | None:
+def parse_colors(colors: list[Color] | None) -> list[Color] | None:
     if colors is None:
         msg = (
             f"The field `colors` is `None`. Version {NGFF_VERSION} of"
@@ -64,7 +62,7 @@ def parse_version(version: Literal["0.4"] | None) -> Literal["0.4"] | None:
     return version
 
 
-def parse_imagelabel(model: ImageLabel):
+def parse_imagelabel(model: ImageLabel) -> ImageLabel:
     """
     check that label_values are consistent across properties and colors
     """
@@ -95,12 +93,12 @@ class ImageLabel(VersionedBase):
     version: Annotated[
         Literal["0.4"] | None, AfterValidator(parse_version)
     ] = NGFF_VERSION
-    colors: Annotated[Optional[tuple[Color, ...]], AfterValidator(parse_colors)] = None
-    properties: Optional[tuple[Property, ...]] = None
-    source: Optional[Source] = None
+    colors: Annotated[tuple[Color, ...] | None, AfterValidator(parse_colors)] = None
+    properties: tuple[Property, ...] | None = None
+    source: Source | None = None
 
     @model_validator(mode="after")
-    def parse_model(self):
+    def parse_model(self) -> ImageLabel:
         return parse_imagelabel(self)
 
 

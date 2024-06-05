@@ -1,8 +1,7 @@
 from __future__ import annotations
-from enum import Enum
-from typing import Optional
-import warnings
 
+import warnings
+from enum import Enum
 
 from pydantic_ome_ngff.base import StrictVersionedBase
 from pydantic_ome_ngff.v04.base import version
@@ -141,5 +140,5 @@ class Axis(StrictVersionedBase):
 
     _version = version
     name: str
-    type: Optional[str] = None
-    unit: Optional[str] = None
+    type: str | None = None
+    unit: str | None = None
