@@ -1,6 +1,6 @@
 from __future__ import annotations
 from pydantic_ome_ngff.v04.multiscale import Dataset, MultiscaleMetadata
-from typing import Iterable, overload
+from typing import Iterable, overload, cast
 
 from pydantic_ome_ngff.v04.transform import VectorScale, VectorTranslation
 
@@ -50,12 +50,12 @@ def transform_coordinate_transformations(
     scale: Iterable[float] | None = None,
     translation: Iterable[float] | None = None,
 ) -> tuple[VectorScale] | tuple[VectorScale, VectorTranslation]:
-    new_transforms: tuple[VectorScale] | tuple[VectorScale, VectorTranslation] = ()
+    new_transforms: tuple[VectorScale] | tuple[VectorScale, VectorTranslation]
     ndim = metadata[0].ndim
     old_scale_param = metadata[0].scale
     in_scale_param_norm = normalize_scale(ndim, param=scale)
     new_scale_param = tuple(a * b for a, b in zip(in_scale_param_norm, old_scale_param))
-    new_transforms += (VectorScale(scale=new_scale_param),)
+    new_transforms = (VectorScale(scale=new_scale_param),)
 
     if translation is not None:
         if len(metadata) == 1:
@@ -91,7 +91,11 @@ def transform_multiscale(
         for dataset in metadata.datasets
     )
 
-    model_dict = metadata.model_dump(exclude=("datasets",))
+    model_dict = metadata.model_dump(
+        exclude=set(
+            "datasets",
+        )
+    )
 
     return MultiscaleMetadata(
         **model_dict,
@@ -99,24 +103,42 @@ def transform_multiscale(
     )
 
 
-def normalize_translation(ndim: int, param: float | None) -> tuple[float, ...]:
+def normalize_translation(
+    ndim: int, param: Iterable[float] | None
+) -> tuple[float, ...]:
     if param is None:
         return (0,) * ndim
 
     return tuple(param)
 
 
-def normalize_scale(ndim: int, param: float | None) -> tuple[float, ...]:
+def normalize_scale(ndim: int, param: Iterable[float] | None) -> tuple[float, ...]:
     if param is None:
         return (1,) * ndim
 
     return tuple(param)
 
 
+@overload
 def transpose_axes_coordinate_transforms(
-    metadata: tuple[VectorScale] | tuple[VectorScale | VectorTranslation],
+    metadata: tuple[VectorScale],
     axis_order: Iterable[int],
-) -> Dataset:
+) -> tuple[VectorScale]:
+    ...
+
+
+@overload
+def transpose_axes_coordinate_transforms(
+    metadata: tuple[VectorScale, VectorTranslation],
+    axis_order: Iterable[int],
+) -> tuple[VectorScale, VectorTranslation]:
+    ...
+
+
+def transpose_axes_coordinate_transforms(
+    metadata: tuple[VectorScale] | tuple[VectorScale, VectorTranslation],
+    axis_order: Iterable[int],
+) -> tuple[VectorScale] | tuple[VectorScale, VectorTranslation]:
     transforms_out: tuple[VectorScale] | tuple[VectorScale, VectorTranslation] = ()
 
     order_tuple = tuple(axis_order)
@@ -128,10 +150,11 @@ def transpose_axes_coordinate_transforms(
         if isinstance(tx, VectorScale):
             new_scale = tuple(tx.scale[idx] for idx in order_tuple)
             new_tx = VectorScale(scale=new_scale)
-        else:
+        elif isinstance(tx, VectorTranslation):
             new_trans = tuple(tx.translation[idx] for idx in order_tuple)
             new_tx = VectorTranslation(translation=new_trans)
-
+        else:
+            raise TypeError(f"Cannot tranpose instances of {type(tx)}")
         transforms_out += (new_tx,)
 
     return transforms_out
@@ -155,7 +178,8 @@ def transpose_axes_multiscale(
     if all(isinstance(x, str) for x in axis_order):
         axis_order_int = tuple(keys_tuple.index(ax) for ax in axis_order)
     elif all(isinstance(x, int) for x in axis_order):
-        axis_order_int = axis_order
+        axis_order = cast(Iterable[int], axis_order)
+        axis_order_int = tuple(axis_order)
     else:
         raise TypeError("All elements of axis_order must be str or int.")
 
@@ -169,7 +193,7 @@ def transpose_axes_multiscale(
         )
         raise ValueError(msg)
 
-    new_axes = [metadata.axes[idx] for idx in axis_order_int]
+    new_axes = tuple(metadata.axes[idx] for idx in axis_order_int)
     new_datasets = tuple(
         transpose_axes_dataset(d, axis_order=axis_order_int) for d in metadata.datasets
     )
@@ -185,7 +209,7 @@ def transpose_axes_multiscale(
         datasets=new_datasets,
         coordinateTransformations=new_ctx,
         **metadata.model_dump(
-            exclude=("axes", "datasets", "coordinateTransformations")
+            exclude=set(["axes", "datasets", "coordinateTransformations"])
         ),
     )
 
@@ -206,8 +230,14 @@ def transpose_axes(
     metadata: MultiscaleMetadata | Dataset, axis_order: Iterable[int] | Iterable[str]
 ) -> MultiscaleMetadata | Dataset:
     if isinstance(metadata, Dataset):
-        return transpose_axes_dataset(metadata, axis_order=axis_order)
+        if all(isinstance(x, int) for x in axis_order):
+            axis_order = cast(Iterable[int], axis_order)
+            return transpose_axes_dataset(metadata, axis_order=axis_order)
+        else:
+            raise TypeError(
+                "To transpose a Dataset, all elements of axis_order must be ints."
+            )
     elif isinstance(metadata, MultiscaleMetadata):
-        return transform_multiscale(metadata, axis_order=axis_order)
+        return transpose_axes_multiscale(metadata, axis_order=axis_order)
     else:
         raise AssertionError

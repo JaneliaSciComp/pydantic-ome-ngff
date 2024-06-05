@@ -199,7 +199,7 @@ def test_transpose_axes_multiscale(
         coordinateTransformations=coordinate_transformations,
     )
     new_metadata = transpose_axes_multiscale(old_metadata, axis_order=order)
-    exclude = ("axes", "datasets", "coordinateTransformations")
+    exclude = set(["axes", "datasets", "coordinateTransformations"])
     assert old_metadata.model_dump(exclude=exclude) == new_metadata.model_dump(
         exclude=exclude
     )

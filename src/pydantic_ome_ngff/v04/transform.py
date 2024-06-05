@@ -26,7 +26,7 @@ class Identity(StrictBase):
     type: Literal["identity"] = "identity"
 
     @property
-    def ndim(self):
+    def ndim(self) -> int:
         raise NotImplementedError
 
 
@@ -49,7 +49,7 @@ class PathTranslation(StrictBase):
     path: str
 
     @property
-    def ndim(self):
+    def ndim(self) -> int:
         raise NotImplementedError
 
 
@@ -71,7 +71,7 @@ class PathScale(StrictBase):
     path: str
 
     @property
-    def ndim(self):
+    def ndim(self) -> int:
         raise NotImplementedError
 
 
@@ -93,7 +93,7 @@ class VectorTranslation(StrictBase):
     translation: Annotated[tuple[float | int, ...], BeforeValidator(listify_numpy)]
 
     @property
-    def ndim(self):
+    def ndim(self) -> int:
         return ndim(self)
 
 
@@ -115,21 +115,22 @@ class VectorScale(StrictBase):
     scale: Annotated[tuple[float | int, ...], BeforeValidator(listify_numpy)]
 
     @property
-    def ndim(self):
+    def ndim(self) -> int:
         return ndim(self)
 
 
 def ndim(
-    transform: VectorScale | VectorTranslation,
+    transform: Scale | Translation,
 ) -> int:
     """
-    Get the dimensionality of a `VectorScale` or `VectorTranslation`.
+    Get the dimensionality of a scale or translation transform.
     """
     if hasattr(transform, "scale"):
         return len(transform.scale)
-
-    else:
+    elif hasattr(transform, "translation"):
         return len(transform.translation)
+    else:
+        raise TypeError(f"Cannot infer the dimensionality of {type(transform)}")
 
 
 def scale_translation(
@@ -151,7 +152,7 @@ def scale_translation(
         msg = "Not enough values in translation. Got 0, expected at least 1."
         raise ValueError(msg)
 
-    vec_scale = VectorScale(scale=scale)
+    vec_scale = VectorScale(scale=tuple(scale))
 
     if len(translation) != len_scale:
         msg = (
@@ -160,7 +161,7 @@ def scale_translation(
         )
         raise ValueError(msg)
 
-    vec_trans = VectorTranslation(translation=translation)
+    vec_trans = VectorTranslation(translation=tuple(translation))
 
     return (vec_scale, vec_trans)
 
@@ -171,8 +172,8 @@ Transform = Union[Scale, Translation]
 
 
 def ensure_dimensionality(
-    transforms: Sequence[VectorScale | VectorTranslation],
-) -> Sequence[VectorScale | VectorTranslation]:
+    transforms: Sequence[Scale | Translation],
+) -> Sequence[Scale | Translation]:
     """
     Ensures that the elements in the input sequence define transformations with identical dimensionality.
     """
