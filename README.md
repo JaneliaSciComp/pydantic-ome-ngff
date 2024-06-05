@@ -1,6 +1,6 @@
 # pydantic-ome-ngff
 ## about
-Pydantic models for OME-NGFF metadata. Versions 0.4 and the latest (v0.5-dev) are currently supported. Read the documentation for the latest release [here](https://janeliascicomp.github.io/pydantic-ome-ngff/).
+Pydantic models for [OME-NGFF](https://ngff.openmicroscopy.org/) metadata. Version [0.4](https://ngff.openmicroscopy.org/0.4/index.html) is supported. Read the documentation for the latest release [here](https://janeliascicomp.github.io/pydantic-ome-ngff/).
 
 ## installation
 
