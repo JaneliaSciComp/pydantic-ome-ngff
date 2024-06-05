@@ -138,8 +138,9 @@ def transpose_axes_coordinate_transforms(
 
 
 def transpose_axes_dataset(metadata: Dataset, axis_order: Iterable[int]) -> Dataset:
-    transforms_reordered = transform_coordinate_transformations(
-        metadata.coordinateTransformations
+    transforms_reordered = transpose_axes_coordinate_transforms(
+        metadata.coordinateTransformations,
+        axis_order=axis_order,
     )
     return Dataset(path=metadata.path, coordinateTransformations=transforms_reordered)
 
@@ -173,8 +174,8 @@ def transpose_axes_multiscale(
         transpose_axes_dataset(d, axis_order=axis_order_int) for d in metadata.datasets
     )
     if metadata.coordinateTransformations is not None:
-        new_ctx = transform_coordinate_transformations(
-            metadata.coordinateTransformations
+        new_ctx = transpose_axes_coordinate_transforms(
+            metadata.coordinateTransformations, axis_order=axis_order_int
         )
     else:
         new_ctx = None

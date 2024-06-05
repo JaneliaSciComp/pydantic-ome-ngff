@@ -206,7 +206,7 @@ class MultiscaleMetadata(StrictVersionedBase):
     version: Any = version
     name: Any = None
     type: Any = None
-    metadata: Dict[str, Any] | None = None
+    metadata: dict[str, Any] | None = None
     datasets: Annotated[tuple[Dataset, ...], Field(..., min_length=1)]
     axes: Annotated[
         tuple[Axis, ...],
@@ -221,13 +221,19 @@ class MultiscaleMetadata(StrictVersionedBase):
     @model_validator(mode="after")
     def validate_transforms(self) -> "MultiscaleMetadata":
         """
-        Ensure that the dimensionality of the top-level coordinate trnasforms, if present,
+        Ensure that the dimensionality of the top-level coordinateTransformations, if present,
         is consistent with the rest of the model.
         """
         ctx = self.coordinateTransformations
         if ctx is not None:
-            scale_ndim = ctx[0].ndim
+            # check that the dimensionality is internally consistent
             tx.ensure_dimensionality(ctx)
+
+            # check that the dimensionality matches the dimensionality of the dataset ctx
+            ndim = ctx[0].ndim
+            assert ndim == self.datasets[0].coordinateTransformations[0].ndim
+
+        return self
 
 
 class GroupAttrs(BaseModel):

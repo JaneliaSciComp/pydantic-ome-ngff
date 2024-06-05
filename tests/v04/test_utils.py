@@ -169,7 +169,7 @@ def test_transform_multiscale_metadata(
 @pytest.mark.parametrize(
     "order", ((0, 1, 2), (0, 2, 1), ("x", "y", "z"), ("y", "x", "z"))
 )
-@pytest.mark.parametrize("ctx", ("None", "auto"))
+@pytest.mark.parametrize("ctx", (None, "auto"))
 def test_transpose_axes_multiscale(
     order: tuple[int, ...] | tuple[str, ...], ctx: Literal["auto"] | None
 ):
@@ -199,10 +199,10 @@ def test_transpose_axes_multiscale(
         coordinateTransformations=coordinate_transformations,
     )
     new_metadata = transpose_axes_multiscale(old_metadata, axis_order=order)
-
-    assert old_metadata.model_dump(
-        exclude=("axes", "datasets")
-    ) == new_metadata.model_dump(exclude=("axes", "datasets"))
+    exclude = ("axes", "datasets", "coordinateTransformations")
+    assert old_metadata.model_dump(exclude=exclude) == new_metadata.model_dump(
+        exclude=exclude
+    )
     new_ctx = new_metadata.coordinateTransformations
     old_ctx = old_metadata.coordinateTransformations
     if ctx is not None:
@@ -237,8 +237,8 @@ def test_transpose_axes_dataset(order: tuple[int, int, int]):
     scale_expected = tuple(
         dataset.coordinateTransformations[0].scale[idx] for idx in order
     )
-    trans_expected = scale_expected = tuple(
-        dataset.coordinateTransformations[0].scale[idx] for idx in order
+    trans_expected = tuple(
+        dataset.coordinateTransformations[1].translation[idx] for idx in order
     )
     assert transposed.coordinateTransformations[0].scale == scale_expected
     assert transposed.coordinateTransformations[1].translation == trans_expected
