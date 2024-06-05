@@ -109,7 +109,7 @@ def test_transform_dataset(
 
     old_dataset = Dataset(path="foo", coordinateTransformations=base_coords)
     new_dataset = transform_dataset(old_dataset, scale=in_scale, translation=in_trans)
-    exclude = ("coordinateTransformations",)
+    exclude = {"coordinateTransformations"}
     new_base_dict = new_dataset.model_dump(exclude=exclude)
     old_base_dict = old_dataset.model_dump(exclude=exclude)
 
@@ -199,7 +199,7 @@ def test_transpose_axes_multiscale(
         coordinateTransformations=coordinate_transformations,
     )
     new_metadata = transpose_axes_multiscale(old_metadata, axis_order=order)
-    exclude = set(["axes", "datasets", "coordinateTransformations"])
+    exclude = {"axes", "datasets", "coordinateTransformations"}
     assert old_metadata.model_dump(exclude=exclude) == new_metadata.model_dump(
         exclude=exclude
     )

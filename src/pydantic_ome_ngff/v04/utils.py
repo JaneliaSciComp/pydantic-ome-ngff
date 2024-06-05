@@ -91,11 +91,7 @@ def transform_multiscale(
         for dataset in metadata.datasets
     )
 
-    model_dict = metadata.model_dump(
-        exclude=set(
-            "datasets",
-        )
-    )
+    model_dict = metadata.model_dump(exclude={"datasets"})
 
     return MultiscaleMetadata(
         **model_dict,
