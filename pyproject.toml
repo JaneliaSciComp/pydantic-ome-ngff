@@ -75,7 +75,7 @@ source_pkgs = ["pydantic_ome_ngff", "tests"]
 branch = true
 parallel = true
 omit = [
-  "src/pydantic_ome_ngff/__about__.py",
+  "src/pydantic_ome_ngff/_version.py",
 ]
 
 [tool.coverage.paths]
