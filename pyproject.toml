@@ -7,22 +7,20 @@ name = "pydantic-ome-ngff"
 dynamic = ["version"]
 description = "Pydantic models for the OME-NGFF file format."
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 license = "MIT"
-keywords = []
+keywords = ["ngff", "pydantic", "ome-ngff", "zarr"]
 authors = [
   { name = "Davis Vann Benntt", email = "davis.v.bennett@gmail.com" },
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python",
-  "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: Implementation :: CPython",
-  "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
   "pydantic-zarr == 0.7.0"
