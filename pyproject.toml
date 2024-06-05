@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "pydantic-ome-ngff"
 dynamic = ["version"]
-description = "Pydantic models for OME-NGFF"
+description = "Pydantic models for the OME-NGFF file format."
 readme = "README.md"
 requires-python = ">=3.8"
 license = "MIT"
