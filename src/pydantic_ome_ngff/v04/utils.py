@@ -7,13 +7,11 @@ from pydantic_ome_ngff.v04.transform import VectorScale, VectorTranslation
 
 
 @overload
-def transform(metadata: Dataset) -> Dataset:
-    ...
+def transform(metadata: Dataset) -> Dataset: ...
 
 
 @overload
-def transform(metadata: MultiscaleMetadata) -> MultiscaleMetadata:
-    ...
+def transform(metadata: MultiscaleMetadata) -> MultiscaleMetadata: ...
 
 
 def transform(
@@ -116,16 +114,14 @@ def normalize_scale(ndim: int, param: Iterable[float] | None) -> tuple[float, ..
 def transpose_axes_coordinate_transforms(
     metadata: tuple[VectorScale],
     axis_order: Iterable[int],
-) -> tuple[VectorScale]:
-    ...
+) -> tuple[VectorScale]: ...
 
 
 @overload
 def transpose_axes_coordinate_transforms(
     metadata: tuple[VectorScale, VectorTranslation],
     axis_order: Iterable[int],
-) -> tuple[VectorScale, VectorTranslation]:
-    ...
+) -> tuple[VectorScale, VectorTranslation]: ...
 
 
 def transpose_axes_coordinate_transforms(
@@ -212,15 +208,13 @@ def transpose_axes_multiscale(
 
 
 @overload
-def transpose_axes(metadata: Dataset, axis_order: Iterable[int]) -> Dataset:
-    ...
+def transpose_axes(metadata: Dataset, axis_order: Iterable[int]) -> Dataset: ...
 
 
 @overload
 def transpose_axes(
     metadata: MultiscaleMetadata, axis_order: Iterable[int] | Iterable[str]
-) -> MultiscaleMetadata:
-    ...
+) -> MultiscaleMetadata: ...
 
 
 def transpose_axes(

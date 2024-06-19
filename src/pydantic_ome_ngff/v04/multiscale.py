@@ -219,9 +219,9 @@ class MultiscaleMetadata(StrictVersionedBase):
         AfterValidator(ensure_axis_names),
         AfterValidator(ensure_axis_types),
     ]
-    coordinateTransformations: tuple[tx.Scale] | tuple[
-        tx.Scale, tx.Translation
-    ] | None = None
+    coordinateTransformations: (
+        tuple[tx.Scale] | tuple[tx.Scale, tx.Translation] | None
+    ) = None
 
     @model_validator(mode="after")
     def validate_transforms(self) -> MultiscaleMetadata:

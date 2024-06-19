@@ -90,9 +90,9 @@ class ImageLabel(VersionedBase):
 
     _version: Literal["0.4"] = NGFF_VERSION
 
-    version: Annotated[
-        Literal["0.4"] | None, AfterValidator(parse_version)
-    ] = NGFF_VERSION
+    version: Annotated[Literal["0.4"] | None, AfterValidator(parse_version)] = (
+        NGFF_VERSION
+    )
     colors: Annotated[tuple[Color, ...] | None, AfterValidator(parse_colors)] = None
     properties: tuple[Property, ...] | None = None
     source: Source | None = None
