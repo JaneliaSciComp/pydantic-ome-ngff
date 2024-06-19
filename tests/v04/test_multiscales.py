@@ -377,7 +377,7 @@ def test_from_arrays(
         axes = all_axes[:ndim]
     else:
         axes = tuple([*all_axes[4:], *all_axes[:3]])
-
+    chunks_arg: tuple[tuple[int, ...], ...] | tuple[int, ...] | Literal["auto"]
     if chunks == "auto":
         chunks_arg = chunks
         chunks_expected = (
@@ -441,7 +441,12 @@ def test_from_zarr_missing_metadata(
     )
     group_model = GroupSpec()
     group = group_model.to_zarr(store, path="test")
-    with pytest.raises(ValueError):
+    store_path = store.path if hasattr(store, "path") else ""
+    match = (
+        "Failed to find mandatory `multiscales` key in the attributes of the Zarr group at "
+        f"{store}://{store_path}://{group.path}."
+    )
+    with pytest.raises(KeyError, match=match):
         Group.from_zarr(group)
 
 

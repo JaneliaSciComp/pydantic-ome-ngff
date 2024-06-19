@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import Counter
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
+from zarr.storage import BaseStore
 
 import numpy as np
 
@@ -38,3 +39,14 @@ def listify_numpy(data: Any) -> Any:
     if isinstance(data, np.ndarray):
         return data.tolist()
     return data
+
+
+def get_path(store: BaseStore) -> str:
+    """
+    Get a path from a zarr store
+    """
+    if hasattr(store, "path"):
+        return store.path
+
+    else:
+        return ""

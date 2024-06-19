@@ -25,6 +25,7 @@ from pydantic_ome_ngff.utils import (
     ArrayLike,
     ChunkedArrayLike,
     duplicates,
+    get_path,
 )
 from pydantic_ome_ngff.v04.axis import Axis, AxisType
 from pydantic_ome_ngff.v04.base import version
@@ -296,16 +297,17 @@ class Group(GroupSpec[GroupAttrs, Union[ArraySpec, GroupSpec]]):
             A model of the Zarr group.
         """
         # on unlistable storage backends, the members of this group will be {}
-        guess = GroupSpec.from_zarr(node)
+        guess = GroupSpec.from_zarr(node, depth=0)
 
         try:
             multi_meta_maybe = guess.attributes["multiscales"]
         except KeyError as e:
+            store_path = get_path(node.store)
             msg = (
                 "Failed to find mandatory `multiscales` key in the attributes of the Zarr group at "
-                f"{node.store}://{node.path}."
+                f"{node.store}://{store_path}://{node.path}."
             )
-            raise ValueError(msg) from e
+            raise KeyError(msg) from e
 
         multi_meta = GroupAttrs(multiscales=multi_meta_maybe)
         members_tree_flat = {}
@@ -331,7 +333,7 @@ class Group(GroupSpec[GroupAttrs, Union[ArraySpec, GroupSpec]]):
         members_normalized = GroupSpec.from_flat(members_tree_flat)
 
         guess_inferred_members = guess.model_copy(
-            update={"members": {**guess.members, **members_normalized.members}}
+            update={"members": members_normalized.members}
         )
         return cls(**guess_inferred_members.model_dump())
 
@@ -347,7 +349,9 @@ class Group(GroupSpec[GroupAttrs, Union[ArraySpec, GroupSpec]]):
         name: str | None = None,
         type: str | None = None,
         metadata: dict[str, Any] | None = None,
-        chunks: tuple[int, ...] | tuple[tuple[int, ...]] | Literal["auto"] = "auto",
+        chunks: tuple[int, ...]
+        | tuple[tuple[int, ...], ...]
+        | Literal["auto"] = "auto",
         compressor: Codec = DEFAULT_COMPRESSOR,
         fill_value: Any = 0,
         order: Literal["C", "F", "auto"] = "auto",
