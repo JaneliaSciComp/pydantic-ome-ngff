@@ -38,7 +38,7 @@ import zarr
 url = "https://uk1s3.embassy.ebi.ac.uk/idr/zarr/v0.4/idr0062A/6001240.zarr"
 
 # open the Zarr group
-zgroup = zarr.open(url)
+zgroup = zarr.open(url, mode='r')
 
 # group_model is a `GroupSpec`, i.e. a Pydantic model of a Zarr group
 group_model = Group.from_zarr(zgroup)
@@ -113,7 +113,7 @@ print(multi_meta)
 arrays = [zgroup[d.path] for d in multi_meta[0].datasets]
 print(arrays)
 """
-[<zarr.core.Array '/0' (2, 236, 275, 271) uint16>, <zarr.core.Array '/1' (2, 236, 137, 135) uint16>, <zarr.core.Array '/2' (2, 236, 68, 67) uint16>]
+[<zarr.core.Array '/0' (2, 236, 275, 271) uint16 read-only>, <zarr.core.Array '/1' (2, 236, 137, 135) uint16 read-only>, <zarr.core.Array '/2' (2, 236, 68, 67) uint16 read-only>]
 """
 ```
 
