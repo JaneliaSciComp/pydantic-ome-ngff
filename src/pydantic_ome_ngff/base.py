@@ -49,6 +49,11 @@ def skip_none(
         for key in info.exclude:
             out.pop(key, None)
 
+    if info.include is not None:
+        for key in tuple(out.keys()):
+            if key not in info.include:
+                out.pop(key)
+
     if info.exclude_none:
         for key, value in tuple(out.items()):
             if value is None:
