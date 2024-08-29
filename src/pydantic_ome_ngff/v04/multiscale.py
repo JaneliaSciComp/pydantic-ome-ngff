@@ -20,7 +20,7 @@ from zarr.errors import ArrayNotFoundError, ContainsGroupError
 from zarr.util import guess_chunks
 
 import pydantic_ome_ngff.v04.transform as tx
-from pydantic_ome_ngff.base import StrictBase, VersionedBase
+from pydantic_ome_ngff.base import FrozenBase, NoneSkipBase, VersionedBase
 from pydantic_ome_ngff.utils import (
     ArrayLike,
     ChunkedArrayLike,
@@ -75,7 +75,7 @@ def ensure_transforms_length(
     return transforms
 
 
-class Dataset(StrictBase):
+class Dataset(FrozenBase):
     """
     A single entry in the `multiscales.datasets` list.
 
@@ -184,7 +184,7 @@ def ensure_axis_types(axes: Sequence[Axis]) -> Sequence[Axis]:
     return axes
 
 
-class MultiscaleMetadata(VersionedBase):
+class MultiscaleMetadata(VersionedBase, FrozenBase, NoneSkipBase):
     """
     Multiscale image metadata.
 
@@ -209,6 +209,12 @@ class MultiscaleMetadata(VersionedBase):
     """
 
     _version = version
+    _skip_if_none: tuple[
+        Literal["name"],
+        Literal["coordinateTransformations"],
+        Literal["type"],
+        Literal["metadata"],
+    ] = ("name", "coordinateTransformations", "type", "metadata")
     version: Any = version
     name: Any = None
     type: Any = None

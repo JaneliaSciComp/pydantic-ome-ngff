@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import List, Optional, Tuple
 from pydantic import ValidationError
 import pytest
 import jsonschema as jsc
@@ -128,7 +127,7 @@ def test_multiscale_unique_axis_names() -> None:
         ("space", "channel", "space", "channel"),
     ],
 )
-def test_multiscale_space_axes_last(axis_types: List[Optional[str]]) -> None:
+def test_multiscale_space_axes_last(axis_types: list[str | None]) -> None:
     units_map = {"space": "meter", "time": "second"}
     axes: list[Axis] = []
     for idx, t in enumerate(axis_types):
@@ -241,7 +240,7 @@ def test_coordinate_transforms_invalid_ndims() -> None:
     ],
 )
 def test_coordinate_transforms_invalid_length(
-    transforms: List[Transform],
+    transforms: list[Transform],
 ) -> None:
     with pytest.raises(
         ValidationError, match=f"after validation, not {len(transforms)}"
@@ -263,7 +262,7 @@ def test_coordinate_transforms_invalid_length(
     ],
 )
 def test_coordinate_transforms_invalid_first_element(
-    transforms: Tuple[Transform, Transform],
+    transforms: tuple[Transform, Transform],
 ) -> None:
     with pytest.raises(
         ValidationError,
@@ -282,7 +281,7 @@ def test_coordinate_transforms_invalid_first_element(
     ),
 )
 def test_coordinate_transforms_invalid_second_element(
-    transforms: Tuple[Transform, Transform],
+    transforms: tuple[Transform, Transform],
 ) -> None:
     with pytest.raises(
         ValidationError,

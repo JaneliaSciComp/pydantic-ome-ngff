@@ -183,9 +183,6 @@ print(group_model.model_dump())
         'multiscales': (
             {
                 'version': '0.4',
-                'name': None,
-                'type': None,
-                'metadata': None,
                 'datasets': (
                     {
                         'path': 's0',
@@ -214,7 +211,6 @@ print(group_model.model_dump())
                     {'name': 'y', 'type': 'space', 'unit': 'nanometer'},
                     {'name': 'x', 'type': 'space', 'unit': 'nanometer'},
                 ),
-                'coordinateTransformations': None,
             },
         )
     },
@@ -272,9 +268,6 @@ print(stored_group.attrs.asdict())
     'multiscales': (
         {
             'version': '0.4',
-            'name': None,
-            'type': None,
-            'metadata': None,
             'datasets': (
                 {
                     'path': 's0',
@@ -297,7 +290,6 @@ print(stored_group.attrs.asdict())
                 {'name': 'y', 'type': 'space', 'unit': 'nanometer'},
                 {'name': 'x', 'type': 'space', 'unit': 'nanometer'},
             ),
-            'coordinateTransformations': None,
         },
     )
 }
@@ -366,9 +358,6 @@ print(group.model_dump())
         'multiscales': (
             {
                 'version': '0.4',
-                'name': None,
-                'type': None,
-                'metadata': None,
                 'datasets': (
                     {
                         'path': 's0',
@@ -397,7 +386,6 @@ print(group.model_dump())
                     {'name': 'y', 'type': 'space', 'unit': 'nanometer'},
                     {'name': 'x', 'type': 'space', 'unit': 'nanometer'},
                 ),
-                'coordinateTransformations': None,
             },
         )
     },
@@ -488,9 +476,6 @@ print(GroupOfMultiscales.from_zarr(zgroup).model_dump())
                 'multiscales': (
                     {
                         'version': '0.4',
-                        'name': None,
-                        'type': None,
-                        'metadata': None,
                         'datasets': (
                             {
                                 'path': 's0',
@@ -501,10 +486,9 @@ print(GroupOfMultiscales.from_zarr(zgroup).model_dump())
                             },
                         ),
                         'axes': (
-                            {'name': 'x', 'type': 'space', 'unit': None},
-                            {'name': 'y', 'type': 'space', 'unit': None},
+                            {'name': 'x', 'type': 'space'},
+                            {'name': 'y', 'type': 'space'},
                         ),
-                        'coordinateTransformations': None,
                     },
                 )
             },
@@ -519,7 +503,7 @@ print(GroupOfMultiscales.from_zarr(zgroup).model_dump())
                     'order': 'C',
                     'filters': None,
                     'dimension_separator': '/',
-                    'compressor': {'id': 'zstd', 'level': 3},
+                    'compressor': {'id': 'zstd', 'level': 3, 'checksum': False},
                 }
             },
         },
@@ -529,9 +513,6 @@ print(GroupOfMultiscales.from_zarr(zgroup).model_dump())
                 'multiscales': (
                     {
                         'version': '0.4',
-                        'name': None,
-                        'type': None,
-                        'metadata': None,
                         'datasets': (
                             {
                                 'path': 's0',
@@ -542,10 +523,9 @@ print(GroupOfMultiscales.from_zarr(zgroup).model_dump())
                             },
                         ),
                         'axes': (
-                            {'name': 'x', 'type': 'space', 'unit': None},
-                            {'name': 'y', 'type': 'space', 'unit': None},
+                            {'name': 'x', 'type': 'space'},
+                            {'name': 'y', 'type': 'space'},
                         ),
-                        'coordinateTransformations': None,
                     },
                 )
             },
@@ -560,7 +540,7 @@ print(GroupOfMultiscales.from_zarr(zgroup).model_dump())
                     'order': 'C',
                     'filters': None,
                     'dimension_separator': '/',
-                    'compressor': {'id': 'zstd', 'level': 3},
+                    'compressor': {'id': 'zstd', 'level': 3, 'checksum': False},
                 }
             },
         },

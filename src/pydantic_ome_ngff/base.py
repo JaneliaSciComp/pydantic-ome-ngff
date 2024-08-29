@@ -1,13 +1,16 @@
-from pydantic import BaseModel
+from __future__ import annotations
+from typing import Any, Callable
+from typing_extensions import Self
+import pydantic
 
 
-class StrictBase(BaseModel, extra="forbid", frozen=True):
+class FrozenBase(pydantic.BaseModel, frozen=True):
     """
-    A frozen pydantic basemodel that refuses extra fields.
+    A frozen pydantic basemodel.
     """
 
 
-class VersionedBase(BaseModel):
+class VersionedBase(pydantic.BaseModel):
     """
     An internally versioned pydantic basemodel.
     """
@@ -15,7 +18,40 @@ class VersionedBase(BaseModel):
     _version: str = "0.0"
 
 
-class StrictVersionedBase(VersionedBase, StrictBase):
+class NoneSkipBase(pydantic.BaseModel):
+    _skip_if_none: tuple[str, ...] = ()
+
+    @pydantic.model_serializer(mode="wrap")
+    def serialize(
+        self: Self,
+        serializer: Callable[[NoneSkipBase], dict[str, Any]],
+        info: pydantic.SerializationInfo,
+    ) -> dict[str, Any]:
+        return skip_none(self, serializer, info)
+
+
+def skip_none(
+    self: NoneSkipBase,
+    serializer: Callable[[NoneSkipBase], dict[str, Any]],
+    info: pydantic.SerializationInfo,
+) -> dict[str, Any]:
     """
-    An internally versioned pydantic basemodel that refuses extra fields.
+    Serialize a NoneSkipBase model to dict, skipping attributes listed in the _skip_if_none attribute of that model.
     """
+    serialized = serializer(self)
+    out = serialized.copy()
+
+    for key, value in serialized.items():
+        if value is None and key in self._skip_if_none:
+            out.pop(key)
+
+    if info.exclude is not None:
+        for key in info.exclude:
+            out.pop(key, None)
+
+    if info.exclude_none:
+        for key, value in tuple(out.items()):
+            if value is None:
+                out.pop(key, None)
+
+    return out
