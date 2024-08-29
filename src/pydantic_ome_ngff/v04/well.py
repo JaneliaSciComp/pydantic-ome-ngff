@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Union
 from pydantic import BaseModel, ValidationError, field_validator
 from pydantic_zarr.v2 import ArraySpec, GroupSpec
 
@@ -29,7 +28,7 @@ class GroupAttrs(BaseModel):
     well: WellMetadata
 
 
-class Group(GroupSpec[GroupAttrs, Union[multiscale.Group, GroupSpec, ArraySpec]]):
+class Group(GroupSpec[GroupAttrs, multiscale.Group | GroupSpec | ArraySpec]):
     @field_validator("members", mode="after")
     @classmethod
     def contains_multiscale_group(

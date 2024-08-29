@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Annotated, Literal, Sequence, Union
+from typing import Annotated, Literal, Sequence
 
 from pydantic_ome_ngff.base import StrictBase
 
@@ -166,9 +166,9 @@ def scale_translation(
     return (vec_scale, vec_trans)
 
 
-Scale = Union[VectorScale, PathScale]
-Translation = Union[VectorTranslation, PathTranslation]
-Transform = Union[Scale, Translation]
+Scale = VectorScale | PathScale
+Translation = VectorTranslation | PathTranslation
+Transform = Scale | Translation
 
 
 def ensure_dimensionality(
