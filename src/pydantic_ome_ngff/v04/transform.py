@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from typing import Annotated, Literal, Sequence
 
-from pydantic_ome_ngff.base import StrictBase
+from pydantic_ome_ngff.base import FrozenBase
 
 from pydantic import BeforeValidator
 from pydantic_ome_ngff.utils import ArrayLike, listify_numpy
 
 
-class Identity(StrictBase):
+class Identity(FrozenBase):
     """
     An identity transform. It has no parameters other than `type`, and no valid use according to the spec.
 
@@ -29,7 +29,7 @@ class Identity(StrictBase):
         raise NotImplementedError
 
 
-class PathTranslation(StrictBase):
+class PathTranslation(FrozenBase):
     """
     A translation transformation with a `path` field. The spec states that `path` should resolve to "binary data".
 
@@ -52,7 +52,7 @@ class PathTranslation(StrictBase):
         raise NotImplementedError
 
 
-class PathScale(StrictBase):
+class PathScale(FrozenBase):
     """
     A scaling transformation with a `path` field. The spec states that `path` should resolve to "binary data".
 
@@ -74,7 +74,7 @@ class PathScale(StrictBase):
         raise NotImplementedError
 
 
-class VectorTranslation(StrictBase):
+class VectorTranslation(FrozenBase):
     """
     A translation transformation defined by a sequence of numbers.
 
@@ -96,7 +96,7 @@ class VectorTranslation(StrictBase):
         return ndim(self)
 
 
-class VectorScale(StrictBase):
+class VectorScale(FrozenBase):
     """
     A scaling transformation defined by a sequence of numbers.
 

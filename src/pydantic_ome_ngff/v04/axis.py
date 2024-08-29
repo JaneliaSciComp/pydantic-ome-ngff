@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from typing import Literal
 import warnings
 from enum import Enum
 
-from pydantic_ome_ngff.base import StrictVersionedBase
+
+from pydantic_ome_ngff.base import FrozenBase, SkipNoneBase
 from pydantic_ome_ngff.v04.base import version
 
 
@@ -121,7 +123,7 @@ def check_type_unit(model: Axis) -> Axis:
     return model
 
 
-class Axis(StrictVersionedBase):
+class Axis(SkipNoneBase, FrozenBase):
     """
     Axis metadata.
 
@@ -129,16 +131,22 @@ class Axis(StrictVersionedBase):
 
     Attributes
     ----------
-
+    _version: Literal['0.4']
+        The current version of this metadata.
+    _skip_if_none: tuple[str,...], default=("type", "unit")
+        Names of fields that will not be serialized if they are None.
     name: str
         The name for this axis.
-    type: str | None
+    type: str | None = None
         The type for this axis, e.g. "space".
+        If this is set to None, it will not be serialized.
     unit: str | None
         The unit of measure associated with the interval defined by this axis.
+        If this is set to None, it will not be serialized.
     """
 
     _version = version
+    _skip_if_none: tuple[Literal["type"], Literal["unit"]] = "type", "unit"
     name: str
     type: str | None = None
     unit: str | None = None
