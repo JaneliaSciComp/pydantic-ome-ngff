@@ -20,7 +20,7 @@ from pydantic_ome_ngff.v04.utils import (
 @pytest.mark.parametrize(
     "ndim, scale", ((3, (1, 2, 3)), (3, None), (2, (1, 2)), (2, None))
 )
-def test_normalize_scale(ndim: int, scale: tuple[int, int, int] | None):
+def test_normalize_scale(ndim: int, scale: tuple[int, int, int] | None) -> None:
     normalized = normalize_scale(ndim=ndim, param=scale)
     if scale is None:
         assert normalized == (1,) * ndim
@@ -31,7 +31,7 @@ def test_normalize_scale(ndim: int, scale: tuple[int, int, int] | None):
 @pytest.mark.parametrize(
     "ndim, trans", ((3, (1, 2, 3)), (3, None), (2, (1, 2)), (2, None))
 )
-def test_normalize_translation(ndim: int, trans: tuple[int, int, int] | None):
+def test_normalize_translation(ndim: int, trans: tuple[int, int, int] | None) -> None:
     normalized = normalize_translation(ndim=ndim, param=trans)
     if trans is None:
         assert normalized == (0,) * ndim
@@ -48,7 +48,7 @@ def test_transform_coordinate_transformations(
     old_trans: Literal["auto"] | None,
     in_scale: Literal["auto"] | None,
     in_trans: Literal["auto"] | None,
-):
+) -> None:
     old_ctx: tuple[VectorScale] | tuple[VectorScale, VectorTranslation] = ()
     old_scale = tuple(range(ndim))
     old_ctx += (VectorScale(scale=old_scale),)
@@ -147,7 +147,7 @@ def test_transform_dataset(
 )
 def test_transform_multiscale_metadata(
     ctx: None | tuple[VectorScale] | tuple[VectorScale, VectorTranslation],
-):
+) -> None:
     scale = (2, 2)
     trans = (0.5, 0.5)
     datasets = (
@@ -172,7 +172,7 @@ def test_transform_multiscale_metadata(
 @pytest.mark.parametrize("ctx", (None, "auto"))
 def test_transpose_axes_multiscale(
     order: tuple[int, ...] | tuple[str, ...], ctx: Literal["auto"] | None
-):
+) -> None:
     axes = {k: Axis(type="space", name=k) for k in ("x", "y", "z")}
     axes_tuple = tuple(axes.values())
     dataset = Dataset(
@@ -224,7 +224,7 @@ def test_transpose_axes_multiscale(
         (0, 2, 1),
     ),
 )
-def test_transpose_axes_dataset(order: tuple[int, int, int]):
+def test_transpose_axes_dataset(order: tuple[int, int, int]) -> None:
     dataset = Dataset(
         path="foo",
         coordinateTransformations=(

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, Literal
+from typing import Literal
 import pytest
 from pydantic import ValidationError
 from pydantic_ome_ngff.v04 import version as NGFF_VERSION
@@ -8,7 +8,7 @@ from pydantic_ome_ngff.v04.label import Color, ImageLabel, Property
 
 
 @pytest.mark.parametrize("version", (None, "0.4"))
-def test_imagelabel(version: Literal["0.4"] | None):
+def test_imagelabel(version: Literal["0.4"] | None) -> None:
     color = Color(label_value=1, rgba=[0, 0, 0, 0])
     model = ImageLabel(colors=[color], version=version)
     dumped = model.model_dump()
@@ -19,7 +19,7 @@ def test_imagelabel(version: Literal["0.4"] | None):
         assert dumped["version"] == NGFF_VERSION
 
 
-def test_properties_colors_match():
+def test_properties_colors_match() -> None:
     color = Color(label_value=0, rgba=(0, 0, 0, 0))
     prop = Property(label_value=1)
 
@@ -46,7 +46,7 @@ def test_imagelabel_version(version: str) -> None:
         ],
     ),
 )
-def test_imagelabel_colors(colors: List[Color] | None):
+def test_imagelabel_colors(colors: list[Color] | None) -> None:
     if colors is None:
         with pytest.warns(UserWarning):
             ImageLabel(colors=colors)
