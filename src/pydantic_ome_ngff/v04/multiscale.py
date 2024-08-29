@@ -10,7 +10,8 @@ if TYPE_CHECKING:
     from numcodecs.abc import Codec
     from typing_extensions import Self
 
-from typing import Annotated, Any, Sequence, cast
+from collections.abc import Sequence
+from typing import Annotated, Any, cast
 
 import zarr
 from numcodecs import Zstd

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Iterable, cast, overload
+from collections.abc import Iterable
+from typing import cast, overload
 
 from pydantic_ome_ngff.v04.multiscale import Dataset, MultiscaleMetadata
 from pydantic_ome_ngff.v04.transform import VectorScale, VectorTranslation

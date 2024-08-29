@@ -1,13 +1,14 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Any
 
+import py
 import pytest
 import requests
-from zarr.storage import MemoryStore, FSStore, NestedDirectoryStore
-import py
+from zarr.storage import FSStore, MemoryStore, NestedDirectoryStore
 
 
 def fetch_schemas(version: str, schema_name: str) -> tuple[Any, Any]:

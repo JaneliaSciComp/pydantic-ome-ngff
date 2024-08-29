@@ -4,8 +4,8 @@ from pydantic import BaseModel, ValidationError, field_validator
 from pydantic_zarr.v2 import ArraySpec, GroupSpec
 
 from pydantic_ome_ngff.base import VersionedBase
-from pydantic_ome_ngff.v04.multiscale import MultiscaleGroup
 from pydantic_ome_ngff.v04.base import version
+from pydantic_ome_ngff.v04.multiscale import MultiscaleGroup
 
 
 class Image(BaseModel):

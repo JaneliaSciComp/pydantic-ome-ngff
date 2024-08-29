@@ -1,17 +1,17 @@
 from __future__ import annotations
-from pydantic import ValidationError
-import pytest
+
 import jsonschema as jsc
+import pytest
+from pydantic import ValidationError
 from pydantic_zarr.v2 import ArraySpec
 
 from pydantic_ome_ngff.latest.axis import Axis
 from pydantic_ome_ngff.latest.multiscale import (
-    MultiscaleMetadata,
-    GroupAttrs,
     Dataset,
     Group,
+    GroupAttrs,
+    MultiscaleMetadata,
 )
-
 from pydantic_ome_ngff.latest.transform import (
     Transform,
     VectorScale,
@@ -115,9 +115,9 @@ def test_multiscale_space_axes_last(axis_types: list[str | None]) -> None:
     axes: list[Axis] = []
     for idx, t in enumerate(axis_types):
         if t is None or t == "channel":
-            ax = Axis(name=str(idx), type=t, unit=units_map.get(t, None))
+            ax = Axis(name=str(idx), type=t, unit=units_map.get(t))
         else:
-            ax = Axis(name=str(idx), type=t, unit=units_map.get(t, None))
+            ax = Axis(name=str(idx), type=t, unit=units_map.get(t))
         axes.append(ax)
 
     rank = len(axes)
@@ -169,7 +169,7 @@ def test_coordinate_transforms_invalid_ndims() -> None:
     ]
     with pytest.raises(
         ValidationError,
-        match="The transforms have inconsistent dimensionality.",  # noqa
+        match="The transforms have inconsistent dimensionality.",
     ):
         Dataset(path="foo", coordinateTransformations=tforms)
 

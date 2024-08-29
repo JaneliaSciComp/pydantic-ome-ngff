@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from collections import Counter
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
-from zarr.storage import BaseStore
 
 import numpy as np
 
 if TYPE_CHECKING:
-    from typing import Any, Hashable, Iterable
+    from collections.abc import Hashable, Iterable
+    from typing import Any
+    from zarr.storage import BaseStore
 
 
 def duplicates(values: Iterable[Hashable]) -> dict[Hashable, int]:

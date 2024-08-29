@@ -10,8 +10,8 @@ from pydantic import (
 from pydantic_zarr.v2 import ArraySpec, GroupSpec
 
 from pydantic_ome_ngff.base import VersionedBase
-from pydantic_ome_ngff.v04.well import WellGroup
 from pydantic_ome_ngff.v04.base import version
+from pydantic_ome_ngff.v04.well import WellGroup
 
 
 class Acquisition(BaseModel):

@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -6,8 +7,9 @@ import numpy as np
 if TYPE_CHECKING:
     from typing import Any, List
 
-from pydantic_ome_ngff.utils import duplicates, listify_numpy
 import pytest
+
+from pydantic_ome_ngff.utils import duplicates, listify_numpy
 
 
 @pytest.mark.parametrize(

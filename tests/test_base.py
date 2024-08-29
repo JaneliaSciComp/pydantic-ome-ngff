@@ -1,6 +1,7 @@
-import pytest
 import pydantic
-from pydantic_ome_ngff.base import FrozenBase, VersionedBase, SkipNoneBase
+import pytest
+
+from pydantic_ome_ngff.base import FrozenBase, SkipNoneBase, VersionedBase
 
 
 def test_frozen_base() -> None:

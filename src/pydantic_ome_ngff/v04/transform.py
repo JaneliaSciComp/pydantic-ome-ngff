@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from typing import Annotated, Literal, Sequence
-
-from pydantic_ome_ngff.base import FrozenBase
+from collections.abc import Sequence
+from typing import Annotated, Literal
 
 from pydantic import BeforeValidator
+
+from pydantic_ome_ngff.base import FrozenBase
 from pydantic_ome_ngff.utils import ArrayLike, listify_numpy
 
 

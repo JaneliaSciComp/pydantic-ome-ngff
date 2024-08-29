@@ -1,32 +1,35 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Literal
-    from zarr.storage import MemoryStore, NestedDirectoryStore, FSStore
 
-from pydantic import ValidationError
-import pytest
+    from zarr.storage import FSStore, MemoryStore, NestedDirectoryStore
+
+import operator
+from itertools import accumulate
+
 import jsonschema as jsc
-from zarr.util import guess_chunks
+import numpy as np
+import pytest
+from pydantic import ValidationError
 from pydantic_zarr.v2 import ArraySpec, GroupSpec
+from zarr.util import guess_chunks
+
+from pydantic_ome_ngff.v04.axis import Axis
 from pydantic_ome_ngff.v04.multiscale import (
-    MultiscaleMetadata,
-    MultiscaleGroupAttrs,
     Dataset,
     MultiscaleGroup,
+    MultiscaleGroupAttrs,
+    MultiscaleMetadata,
 )
-
 from pydantic_ome_ngff.v04.transform import (
     Transform,
     VectorScale,
     VectorTranslation,
 )
-from pydantic_ome_ngff.v04.axis import Axis
 from tests.conftest import fetch_schemas
-import numpy as np
-from itertools import accumulate
-import operator
 
 
 @pytest.fixture
@@ -125,7 +128,7 @@ def test_multiscale_unique_axis_names() -> None:
 def test_multiscale_space_axes_last(axis_types: list[str | None]) -> None:
     units_map = {"space": "meter", "time": "second"}
     axes = tuple(
-        Axis(name=str(idx), type=t, unit=units_map.get(t, None))
+        Axis(name=str(idx), type=t, unit=units_map.get(t))
         for idx, t in enumerate(axis_types)
     )
     rank = len(axes)
