@@ -63,10 +63,10 @@ extra-dependencies = [
 [tool.hatch.envs.types.scripts]
 check = "mypy --install-types --non-interactive {args:src/pydantic_ome_ngff tests}"
 
-[tool.hatch.env.docs]
+[tool.hatch.envs.docs]
 dependencies = [
-  "mkdocs-material==9.5.5",
-  "mkdocstrings==0.24.0"
+  "mkdocs-material==9.5.33",
+  "mkdocstrings[python]==0.25.2"
   ]
 
 [tool.hatch.envs.docs.scripts]

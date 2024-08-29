@@ -1,6 +1,6 @@
 # pydantic-ome-ngff
 
-[Pydantic](https://docs.pydantic.dev/latest/) models for [OME-NGFF](https://ngff.openmicroscopy.org/)
+[Pydantic](https://docs.pydantic.dev/latest/) models for [OME-NGFF](https://ngff.openmicroscopy.org/).
 
 # About
 
@@ -13,7 +13,7 @@ You can use this library to:
 
 See the [reading](#reading-a-multiscale-group) and [writing](#creating-a-multiscale-group) examples for basic usage. 
 
-The base Pydantic models for Zarr groups and arrays used in this library are defined in [`pydantic-zarr`](https://janelia-cellmap.github.io/pydantic-zarr/)
+The base Pydantic models for Zarr groups and arrays used in this library are defined in [`pydantic-zarr`](https://janelia-cellmap.github.io/pydantic-zarr/).
 
 ## Limitations
 
@@ -24,6 +24,8 @@ Version 0.4 of OME-NGFF has pretty extensive support, although my focus has been
 ### Array data
 
 This library only models the *structure* of a Zarr hierarchy, i.e. the layout of Zarr groups and arrays, and their metadata; it provides no functionality for efficiently reading or writing data from Zarr arrays. Use [`zarr-python`](https://github.com/zarr-developers/zarr-python) or [`tensorstore`](https://google.github.io/tensorstore/) for getting data in and out of Zarr arrays.
+
+I highly recommend representing OME-NGFF datasets with the tools provided in [`xarray`](https://docs.xarray.dev/en/stable/). To make this easier, I maintain a library to bridge OME-NGFF and xarray: [`xarray-ome-ngff`](https://janeliascicomp.github.io/xarray-ome-ngff/).
 
 # Examples
 
