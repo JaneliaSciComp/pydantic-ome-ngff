@@ -102,7 +102,7 @@ class ImageLabel(VersionedBase):
         return parse_imagelabel(self)
 
 
-class GroupAttrs(multiscale.GroupAttrs):
+class GroupAttrs(multiscale.MultiscaleGroupAttrs):
     """
     Attributes for a Zarr group that contains `image-label` metadata.
     Inherits from `v04.multiscales.MultiscaleAttrs`.
@@ -120,5 +120,5 @@ class GroupAttrs(multiscale.GroupAttrs):
     image_label: Annotated[ImageLabel, Field(..., serialization_alias="image-label")]
 
 
-class Group(multiscale.Group):
+class Group(multiscale.MultiscaleGroup):
     attributes: GroupAttrs

@@ -4,7 +4,7 @@ from collections import Counter
 from typing import TYPE_CHECKING
 
 import numpy as np
-from typing_extensions import Literal
+from typing_extensions import Literal, deprecated
 
 if TYPE_CHECKING:
     from numcodecs.abc import Codec
@@ -20,7 +20,7 @@ from zarr.errors import ArrayNotFoundError, ContainsGroupError
 from zarr.util import guess_chunks
 
 import pydantic_ome_ngff.v04.transform as tx
-from pydantic_ome_ngff.base import StrictBase, StrictVersionedBase
+from pydantic_ome_ngff.base import StrictBase, VersionedBase
 from pydantic_ome_ngff.utils import (
     ArrayLike,
     ChunkedArrayLike,
@@ -184,7 +184,7 @@ def ensure_axis_types(axes: Sequence[Axis]) -> Sequence[Axis]:
     return axes
 
 
-class MultiscaleMetadata(StrictVersionedBase):
+class MultiscaleMetadata(VersionedBase):
     """
     Multiscale image metadata.
 
@@ -249,7 +249,7 @@ class MultiscaleMetadata(StrictVersionedBase):
         return self
 
 
-class GroupAttrs(BaseModel):
+class MultiscaleGroupAttrs(BaseModel):
     """
     A model of the required attributes of a Zarr group that implements OME-NGFF Multiscales metadata.
 
@@ -264,7 +264,7 @@ class GroupAttrs(BaseModel):
     multiscales: Annotated[tuple[MultiscaleMetadata, ...], Field(..., min_length=1)]
 
 
-class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
+class MultiscaleGroup(GroupSpec[MultiscaleGroupAttrs, ArraySpec | GroupSpec]):
     """
     A model of a Zarr group that implements OME-NGFF Multiscales metadata.
 
@@ -281,7 +281,7 @@ class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
     """
 
     @classmethod
-    def from_zarr(cls, node: zarr.Group) -> Group:
+    def from_zarr(cls, node: zarr.Group) -> MultiscaleGroup:
         """
         Create an instance of `Group` from a `node`, a `zarr.Group`. This method discovers Zarr arrays in the hierarchy rooted at `node` by inspecting the OME-NGFF
         multiscales metadata.
@@ -309,7 +309,7 @@ class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
             )
             raise KeyError(msg) from e
 
-        multi_meta = GroupAttrs(multiscales=multi_meta_maybe)
+        multi_meta = MultiscaleGroupAttrs(multiscales=multi_meta_maybe)
         members_tree_flat = {}
         for multiscale in multi_meta.multiscales:
             for dataset in multiscale.datasets:
@@ -426,11 +426,11 @@ class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
         )
         return cls(
             members=GroupSpec.from_flat(members_flat).members,
-            attributes=GroupAttrs(multiscales=(multimeta,)),
+            attributes=MultiscaleGroupAttrs(multiscales=(multimeta,)),
         )
 
     @model_validator(mode="after")
-    def check_arrays_exist(self) -> Group:
+    def check_arrays_exist(self) -> MultiscaleGroup:
         """
         Check that the arrays referenced in the `multiscales` metadata are actually contained in this group.
         """
@@ -457,7 +457,7 @@ class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
         return self
 
     @model_validator(mode="after")
-    def check_array_ndim(self) -> Group:
+    def check_array_ndim(self) -> MultiscaleGroup:
         """
         Check that all the arrays referenced by the `multiscales` metadata have dimensionality consistent with the
         `coordinateTransformations` metadata.
@@ -493,6 +493,19 @@ class Group(GroupSpec[GroupAttrs, ArraySpec | GroupSpec]):
                             raise ValueError(msg)
 
         return self
+
+
+# for backwards compatibility
+@deprecated(
+    "The `Group` class has been renamed to `MultiscaleGroup`. This class remains for backwards compatibility, but it will be removed. You should use `MultiscaleGroup`."
+)
+class Group(MultiscaleGroup): ...
+
+
+@deprecated(
+    "The `GroupAttrs` class has been renamed to `MultiscaleGroupAttrs`. This class remains for backwards compatibility, but it will be removed. You should use `MultiscaleGroupAttrs`."
+)
+class GroupAttrs(MultiscaleGroupAttrs): ...
 
 
 def normalize_chunks(

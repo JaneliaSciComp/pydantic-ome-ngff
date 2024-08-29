@@ -12,9 +12,9 @@ from zarr.util import guess_chunks
 from pydantic_zarr.v2 import ArraySpec, GroupSpec
 from pydantic_ome_ngff.v04.multiscale import (
     MultiscaleMetadata,
-    GroupAttrs,
+    MultiscaleGroupAttrs,
     Dataset,
-    Group,
+    MultiscaleGroup,
 )
 
 from pydantic_ome_ngff.v04.transform import (
@@ -251,7 +251,7 @@ def test_transform_invalid_second_element(
 def test_multiscale_group_datasets_exist(
     default_multiscale: MultiscaleMetadata,
 ) -> None:
-    group_attrs = GroupAttrs(multiscales=(default_multiscale,))
+    group_attrs = MultiscaleGroupAttrs(multiscales=(default_multiscale,))
     good_items = {
         d.path: ArraySpec(
             shape=(1, 1, 1, 1),
@@ -260,7 +260,7 @@ def test_multiscale_group_datasets_exist(
         )
         for d in default_multiscale.datasets
     }
-    Group(attributes=group_attrs, members=good_items)
+    MultiscaleGroup(attributes=group_attrs, members=good_items)
 
     bad_items = {
         d.path + "x": ArraySpec(
@@ -283,11 +283,11 @@ def test_multiscale_group_datasets_exist(
             )
             for d in default_multiscale.datasets
         }
-        Group(attributes=group_attrs, members=bad_items)
+        MultiscaleGroup(attributes=group_attrs, members=bad_items)
 
 
 def test_multiscale_group_datasets_rank(default_multiscale: MultiscaleMetadata) -> None:
-    group_attrs = GroupAttrs(multiscales=(default_multiscale,))
+    group_attrs = MultiscaleGroupAttrs(multiscales=(default_multiscale,))
     good_items = {
         d.path: ArraySpec(
             shape=(1, 1, 1, 1),
@@ -296,7 +296,7 @@ def test_multiscale_group_datasets_rank(default_multiscale: MultiscaleMetadata) 
         )
         for d in default_multiscale.datasets
     }
-    Group(attributes=group_attrs, members=good_items)
+    MultiscaleGroup(attributes=group_attrs, members=good_items)
 
     # arrays with varying rank
     bad_items = {
@@ -318,7 +318,7 @@ def test_multiscale_group_datasets_rank(default_multiscale: MultiscaleMetadata) 
             )
             for idx, d in enumerate(default_multiscale.datasets)
         }
-        Group(attributes=group_attrs, members=bad_items)
+        MultiscaleGroup(attributes=group_attrs, members=bad_items)
 
     # arrays with rank that doesn't match the transform
     bad_items = {
@@ -331,7 +331,7 @@ def test_multiscale_group_datasets_rank(default_multiscale: MultiscaleMetadata) 
             d.path: ArraySpec(shape=(1,), dtype="uint8", chunks=(1,))
             for d in default_multiscale.datasets
         }
-        Group(attributes=group_attrs, members=bad_items)
+        MultiscaleGroup(attributes=group_attrs, members=bad_items)
 
 
 @pytest.mark.parametrize("name", [None, "foo"])
@@ -395,7 +395,7 @@ def test_from_arrays(
     else:
         order_expected = order
 
-    group = Group.from_arrays(
+    group = MultiscaleGroup.from_arrays(
         paths=paths,
         axes=axes,
         arrays=arrays,
@@ -447,7 +447,7 @@ def test_from_zarr_missing_metadata(
         f"{store}://{store_path}://{group.path}."
     )
     with pytest.raises(KeyError, match=match):
-        Group.from_zarr(group)
+        MultiscaleGroup.from_zarr(group)
 
 
 @pytest.mark.parametrize(
@@ -467,7 +467,7 @@ def test_from_zarr_missing_array(
     arrays = np.zeros((10, 10)), np.zeros((5, 5))
     group_path = "broken"
     arrays_names = ("s0", "s1")
-    group_model = Group.from_arrays(
+    group_model = MultiscaleGroup.from_arrays(
         arrays=arrays,
         axes=(Axis(name="x", type="space"), Axis(name="y", type="space")),
         paths=arrays_names,
@@ -484,7 +484,7 @@ def test_from_zarr_missing_array(
         "but no array was found there."
     )
     with pytest.raises(ValueError, match=match):
-        Group.from_zarr(broken_group)
+        MultiscaleGroup.from_zarr(broken_group)
 
     # put a group where the array should be
     broken_group.create_group(removed_array_path)
@@ -493,7 +493,7 @@ def test_from_zarr_missing_array(
         "but a group was found there instead."
     )
     with pytest.raises(ValueError, match=match):
-        Group.from_zarr(broken_group)
+        MultiscaleGroup.from_zarr(broken_group)
 
 
 def test_hashable(default_multiscale: MultiscaleMetadata) -> None:
