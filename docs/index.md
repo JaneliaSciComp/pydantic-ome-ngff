@@ -431,7 +431,7 @@ using a combination of `pydantic-ome-ngff` and `pydantic-zarr`:
 ```python
 from pydantic_zarr.v2 import GroupSpec
 from pydantic_ome_ngff.v04 import MultiscaleGroup, Axis
-from typing import Union, Any
+from typing import Any
 import numpy as np
 import zarr
 
@@ -440,7 +440,7 @@ import zarr
 # type parameters. the first type parameter is for the attributes, 
 # which we set to `Any`, and the second type parameter is for the members of the group
 # which we set to the union of GroupSpec and MultiscaleGroup. 
-GroupOfMultiscales = GroupSpec[Any, Union[GroupSpec, MultiscaleGroup]]
+GroupOfMultiscales = GroupSpec[Any, GroupSpec | MultiscaleGroup]
 axes = [Axis(name='x', type='space'), Axis(name='y', type='space')]
 
 m_group_a = MultiscaleGroup.from_arrays(
