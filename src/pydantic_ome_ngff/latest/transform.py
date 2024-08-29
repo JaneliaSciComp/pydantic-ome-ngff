@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Union
-
 import pydantic_ome_ngff.v04.transform as tx
 
 
@@ -40,9 +38,9 @@ class VectorScale(tx.VectorScale):
     """
 
 
-Scale = Union[VectorScale, PathScale]
-Translation = Union[VectorTranslation, PathTranslation]
-Transform = Union[Scale, Translation, Identity]
+Scale = VectorScale | PathScale
+Translation = VectorTranslation | PathTranslation
+Transform = Scale | Translation | Identity
 
 scale_translation = tx.scale_translation
 ensure_dimensionality = tx.ensure_dimensionality

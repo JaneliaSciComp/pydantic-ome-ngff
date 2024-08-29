@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from numcodecs.abc import Codec
     from typing_extensions import Self
 
-from typing import Annotated, Any, Sequence, Union, cast
+from typing import Annotated, Any, Sequence, cast
 
 import zarr
 from numcodecs import Zstd
@@ -264,7 +264,7 @@ class MultiscaleGroupAttrs(BaseModel):
     multiscales: Annotated[tuple[MultiscaleMetadata, ...], Field(..., min_length=1)]
 
 
-class MultiscaleGroup(GroupSpec[MultiscaleGroupAttrs, Union[ArraySpec, GroupSpec]]):
+class MultiscaleGroup(GroupSpec[MultiscaleGroupAttrs, ArraySpec | GroupSpec]):
     """
     A model of a Zarr group that implements OME-NGFF Multiscales metadata.
 
@@ -479,7 +479,7 @@ class MultiscaleGroup(GroupSpec[MultiscaleGroupAttrs, Union[ArraySpec, GroupSpec
                 for tform in tforms:
                     if hasattr(tform, "scale") or hasattr(tform, "translation"):
                         tform = cast(
-                            Union[tx.VectorScale, tx.VectorTranslation],
+                            tx.VectorScale | tx.VectorTranslation,
                             tform,
                         )
                         if (tform_ndim := tx.ndim(tform)) != arr_ndim:

@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from typing import Union
 from pydantic import BaseModel, ValidationError, field_validator
 from pydantic_zarr.v2 import ArraySpec, GroupSpec
 
 from pydantic_ome_ngff.base import VersionedBase
-from pydantic_ome_ngff.v04 import multiscale
+from pydantic_ome_ngff.v04.multiscale import MultiscaleGroup
 from pydantic_ome_ngff.v04.base import version
 
 
@@ -25,21 +24,19 @@ class WellMetadata(VersionedBase):
     images: tuple[Image, ...]
 
 
-class GroupAttrs(BaseModel):
+class WellGroupAttrs(BaseModel):
     well: WellMetadata
 
 
-class Group(
-    GroupSpec[GroupAttrs, Union[multiscale.MultiscaleGroup, GroupSpec, ArraySpec]]
-):
+class WellGroup(GroupSpec[WellGroupAttrs, MultiscaleGroup | GroupSpec | ArraySpec]):
     @field_validator("members", mode="after")
     @classmethod
     def contains_multiscale_group(
-        cls, members: Group | GroupSpec | ArraySpec
-    ) -> Group | GroupSpec | ArraySpec:
+        cls, members: MultiscaleGroup | GroupSpec | ArraySpec
+    ) -> MultiscaleGroup | GroupSpec | ArraySpec:
         """
         Check that .members contains a MultiscaleGroup
         """
-        if not any(isinstance(v, multiscale.MultiscaleGroup) for v in members.values()):
+        if not any(isinstance(v, MultiscaleGroup) for v in members.values()):
             raise ValidationError
         return members

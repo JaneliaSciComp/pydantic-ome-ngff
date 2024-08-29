@@ -607,7 +607,7 @@ except ValidationError as e:
     print(e)
     """
     1 validation error for MultiscaleGroup
-      Value error, Dataset s0 was specified in multiscale metadata, but no array with that name was found in the hierarchy. All arrays referenced in multiscale metadata must be contained in the group. [type=value_error, input_value={'zarr_version': 2, 'attr...: 'zstd', 'level': 3}}}}, input_type=dict]
+      Value error, Dataset s0 was specified in multiscale metadata, but no array with that name was found in the hierarchy. All arrays referenced in multiscale metadata must be contained in the group. [type=value_error, input_value={'zarr_version': 2, 'attr...3, 'checksum': False}}}}, input_type=dict]
         For further information visit https://errors.pydantic.dev/2.8/v/value_error
     """
 
@@ -622,7 +622,7 @@ except ValidationError as e:
     print(e)
     """
     1 validation error for MultiscaleGroup
-      Value error, Transform type='scale' scale=(1, 1) has dimensionality 2, which does not match the dimensionality of the array found in this group at s0 (1). Transform dimensionality must match array dimensionality. [type=value_error, input_value={'zarr_version': 2, 'attr...: 'zstd', 'level': 3}}}}, input_type=dict]
+      Value error, Transform type='scale' scale=(1, 1) has dimensionality 2, which does not match the dimensionality of the array found in this group at s0 (1). Transform dimensionality must match array dimensionality. [type=value_error, input_value={'zarr_version': 2, 'attr...3, 'checksum': False}}}}, input_type=dict]
         For further information visit https://errors.pydantic.dev/2.8/v/value_error
     """
 ```

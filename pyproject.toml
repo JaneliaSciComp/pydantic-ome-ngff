@@ -35,6 +35,9 @@ Source = "https://github.com/janeliascicomp/pydantic-ome-ngff"
 version.source = "vcs"
 build.hooks.vcs.version-file = "src/pydantic_ome_ngff/_version.py"
 
+[tool.hatch.envs.default]
+installer = "uv"
+
 [tool.hatch.envs.test]
 dependencies = [
   "pytest==8.0.0",
@@ -51,7 +54,7 @@ run = "run-coverage --no-cov"
 run-verbose = "run-coverage --verbose"
 
 [[tool.hatch.envs.test.matrix]]
-python = ["3.9", "3.10", "3.11"]
+python = ["3.10", "3.11", "3.12"]
 
 [tool.hatch.envs.types]
 extra-dependencies = [
