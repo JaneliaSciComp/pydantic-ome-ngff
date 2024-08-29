@@ -432,6 +432,102 @@ def test_from_arrays(
         )
 
 
+@pytest.mark.parametrize("name", [None, "foo"])
+@pytest.mark.parametrize("type", [None, "foo"])
+@pytest.mark.parametrize("path_pattern", ["{0}", "s{0}", "foo/{0}"])
+@pytest.mark.parametrize("metadata", [None, {"foo": 10}])
+@pytest.mark.parametrize("ndim", [2, 3, 4, 5])
+@pytest.mark.parametrize("chunks", ["auto", "tuple", "tuple-of-tuple"])
+@pytest.mark.parametrize("order", ["C", "F"])
+def test_from_array_props(
+    name: str | None,
+    type: str | None,
+    path_pattern: str,
+    metadata: dict[str, int] | None,
+    ndim: int,
+    chunks: Literal["auto", "tuple", "tuple-of-tuple"],
+    order: Literal["auto", "C", "F"],
+) -> None:
+    arrays = tuple(np.arange(x**ndim).reshape((x,) * ndim) for x in [3, 2, 1])
+    paths = tuple(path_pattern.format(idx) for idx in range(len(arrays)))
+    scales = tuple((2**idx,) * ndim for idx in range(len(arrays)))
+    translations = tuple(
+        (t,) * ndim
+        for t in accumulate(
+            [(2 ** (idx - 1)) for idx in range(len(arrays))], operator.add
+        )
+    )
+
+    all_axes = tuple(
+        [
+            Axis(
+                name="x",
+                type="space",
+            ),
+            Axis(name="y", type="space"),
+            Axis(name="z", type="space"),
+            Axis(name="t", type="time"),
+            Axis(name="c", type="barf"),
+        ]
+    )
+    # spatial axes have to come last
+    if ndim in (2, 3):
+        axes = all_axes[:ndim]
+    else:
+        axes = tuple([*all_axes[4:], *all_axes[:3]])
+    chunks_arg: tuple[tuple[int, ...], ...] | tuple[int, ...] | Literal["auto"]
+    if chunks == "auto":
+        chunks_arg = chunks
+        chunks_expected = (
+            guess_chunks(arrays[0].shape, arrays[0].dtype.itemsize),
+        ) * len(arrays)
+    elif chunks == "tuple":
+        chunks_arg = (2,) * ndim
+        chunks_expected = (chunks_arg,) * len(arrays)
+    elif chunks == "tuple-of-tuple":
+        chunks_arg = tuple((idx,) * ndim for idx in range(1, len(arrays) + 1))
+        chunks_expected = chunks_arg
+
+    if order == "auto":
+        order_expected = "C"
+    else:
+        order_expected = order
+
+    group = MultiscaleGroup.from_array_props(
+        dtype=arrays[0].dtype,
+        shapes=tuple(a.shape for a in arrays),
+        paths=paths,
+        axes=axes,
+        scales=scales,
+        translations=translations,
+        name=name,
+        type=type,
+        metadata=metadata,
+        chunks=chunks_arg,
+        order=order,
+    )
+
+    group_flat = group.to_flat()
+
+    assert group.attributes.multiscales[0].name == name
+    assert group.attributes.multiscales[0].type == type
+    assert group.attributes.multiscales[0].metadata == metadata
+    assert group.attributes.multiscales[0].coordinateTransformations is None
+    assert group.attributes.multiscales[0].axes == tuple(axes)
+    for idx, array in enumerate(arrays):
+        array_model: ArraySpec = group_flat["/" + paths[idx]]
+        assert array_model.order == order_expected
+        assert array.shape == array_model.shape
+        assert array.dtype == array_model.dtype
+        assert chunks_expected[idx] == array_model.chunks
+        assert group.attributes.multiscales[0].datasets[
+            idx
+        ].coordinateTransformations == (
+            VectorScale(scale=scales[idx]),
+            VectorTranslation(translation=translations[idx]),
+        )
+
+
 @pytest.mark.parametrize(
     "store_type", ["memory_store", "fsstore_local", "nested_directory_store"]
 )

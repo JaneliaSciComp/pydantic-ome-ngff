@@ -359,14 +359,14 @@ class MultiscaleGroup(GroupSpec[MultiscaleGroupAttrs, ArraySpec | GroupSpec]):
         chunks: tuple[int, ...]
         | tuple[tuple[int, ...], ...]
         | Literal["auto"] = "auto",
-        compressor: Codec = DEFAULT_COMPRESSOR,
+        compressor: Codec | Literal["auto"] = DEFAULT_COMPRESSOR,
         fill_value: Any = 0,
         order: Literal["C", "F", "auto"] = "auto",
     ) -> Self:
         """
-        Create a `Group` from a sequence of multiscale arrays and spatial metadata.
+        Create a `MultiscaleGroup` from a sequence of multiscale arrays and spatial metadata.
 
-        The arrays are used as templates for corresponding `ArraySpec` instances, which model the Zarr arrays that would be created if the `Group` was stored.
+        The arrays are used as templates for corresponding `ArraySpec` instances, which model the Zarr arrays that would be created if the `MultiscaleGroup` was stored.
 
         Parameters
         ----------
@@ -395,7 +395,7 @@ class MultiscaleGroup(GroupSpec[MultiscaleGroupAttrs, ArraySpec | GroupSpec]):
             If a sequence of sequences of ints is provided, then this defines the chunks for each array.
         fill_value: Any, default = 0
             The fill value for the Zarr arrays.
-        compressor: `Codec`
+        compressor: `Codec` | "auto", default = `numcodecs.ZStd`
             The compressor to use for the arrays. Default is `numcodecs.ZStd`.
         order: "auto" | "C" | "F"
             The memory layout used for chunks of Zarr arrays. The default is "auto", which will infer the order from the input arrays, and fall back to "C" if that inference fails.
@@ -435,6 +435,100 @@ class MultiscaleGroup(GroupSpec[MultiscaleGroupAttrs, ArraySpec | GroupSpec]):
             members=GroupSpec.from_flat(members_flat).members,
             attributes=MultiscaleGroupAttrs(multiscales=(multimeta,)),
         )
+
+    @classmethod
+    def from_array_props(
+        cls,
+        dtype: np.dtype[Any],
+        shapes: Sequence[Sequence[int]],
+        paths: Sequence[str],
+        axes: Sequence[Axis],
+        scales: Sequence[tuple[int | float, ...]],
+        translations: Sequence[tuple[int | float, ...]],
+        name: str | None = None,
+        type: str | None = None,
+        metadata: dict[str, Any] | None = None,
+        chunks: tuple[int, ...]
+        | tuple[tuple[int, ...], ...]
+        | Literal["auto"] = "auto",
+        compressor: Codec = DEFAULT_COMPRESSOR,
+        fill_value: Any = 0,
+        order: Literal["C", "F", "auto"] = "auto",
+    ) -> Self:
+        """
+        Create a `MultiscaleGroup` from a dtype and a sequence of shapes.
+
+        The dtype and shapes are used to parametrize `ArraySpec` instances which model the Zarr arrays that would be created if the `MultiscaleGroup` was stored.
+
+        Parameters
+        ----------
+        dtype: np.dtype[Any]
+            The data type of the arrays.
+        shapes: Seqence[Sequence[str]]
+            The shapes of the arrays.
+        paths: Sequence[str]
+            The paths to the arrays.
+        axes: Sequence[Axis]
+            `Axis` objects describing the dimensions of the arrays.
+        scales: Sequence[Sequence[int | float]]
+            A scale value for each axis of the array, for each shape in `shapes`.
+        translations: Sequence[Sequence[int | float]]
+            A translation value for each axis the array, for each shape in `shapes`.
+        name: str | None, default = None
+            A name for the multiscale collection. Optional.
+        type: str | None, default = None
+            A description of the type of multiscale image represented by this group. Optional.
+        metadata: Dict[str, Any] | None, default = None
+            Arbitrary metadata associated with this multiscale collection. Optional.
+        chunks: tuple[int] | tuple[tuple[int, ...]] | Literal["auto"], default = "auto"
+            The chunks for the arrays in this multiscale group.
+            If the string "auto" is provided, each array will have chunks set to the zarr-python default value, which depends on the shape and dtype of the array.
+            If a single sequence of ints is provided, then this defines the chunks for all arrays.
+            If a sequence of sequences of ints is provided, then this defines the chunks for each array.
+        fill_value: Any, default = 0
+            The fill value for the Zarr arrays.
+        compressor: `Codec`
+            The compressor to use for the arrays. Default is `numcodecs.ZStd`.
+        order: "C" | "F", default = "C"
+            The memory layout used for chunks of Zarr arrays. The default is "C".
+        """
+
+        chunks_normalized = normalize_chunks(
+            chunks,
+            shapes=tuple(tuple(s) for s in shapes),
+            typesizes=tuple(dtype.itemsize for s in shapes),
+        )
+
+        members_flat = {
+            "/" + key.lstrip("/"): ArraySpec(
+                dtype=dtype,
+                shape=shape,
+                chunks=cnks,
+                attributes={},
+                compressor=compressor,
+                filters=None,
+                fill_value=fill_value,
+                order=order,
+            )
+            for key, shape, cnks in zip(paths, shapes, chunks_normalized)
+        }
+
+        multimeta = MultiscaleMetadata(
+            name=name,
+            type=type,
+            metadata=metadata,
+            axes=tuple(axes),
+            datasets=tuple(
+                create_dataset(path=path, scale=scale, translation=translation)
+                for path, scale, translation in zip(paths, scales, translations)
+            ),
+            coordinateTransformations=None,
+        )
+        return cls(
+            members=GroupSpec.from_flat(members_flat).members,
+            attributes=MultiscaleGroupAttrs(multiscales=(multimeta,)),
+        )
+        return cls()
 
     @model_validator(mode="after")
     def check_arrays_exist(self) -> MultiscaleGroup:
