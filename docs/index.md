@@ -128,7 +128,7 @@ The basic workflow is as follows:
 3. Write array data to the newly created Zarr arrays, using a method that suits your application. 
 
 ```python
-from pydantic_ome_ngff.v04.multiscale import Group
+from pydantic_ome_ngff.v04.multiscale import MultiscaleGroup
 from pydantic_ome_ngff.v04.axis import Axis
 import numpy as np
 import zarr
@@ -166,7 +166,7 @@ translations = [
 ]
 
 # this is now a complete model of the Zarr group
-group_model = Group.from_arrays(
+group_model = MultiscaleGroup.from_arrays(
     axes=axes,
     paths=paths,
     arrays=arrays,
@@ -310,7 +310,7 @@ It's also possible to create a multiscale group without using the `from_arrays` 
 
 ```python
 from pydantic_zarr.v2 import ArraySpec
-from pydantic_ome_ngff.v04.multiscale import Group, MultiscaleMetadata, create_dataset, GroupAttrs
+from pydantic_ome_ngff.v04.multiscale import MultiscaleGroup, MultiscaleMetadata, create_dataset, MultiscaleGroupAttrs
 from pydantic_ome_ngff.v04.axis import Axis
 import numpy as np
 import zarr
@@ -353,10 +353,10 @@ multiscales = MultiscaleMetadata(
     datasets=datasets,
     axes=axes)
 
-attributes = GroupAttrs(multiscales=(multiscales,))
+attributes = MultiscaleGroupAttrs(multiscales=(multiscales,))
 members = {p: ArraySpec(shape=s, dtype=d, chunks=store_chunks) for p,s,d in zip(paths, shapes, dtypes)}
 
-group = Group(attributes=attributes, members = members)
+group = MultiscaleGroup(attributes=attributes, members = members)
 
 print(group.model_dump())
 """
@@ -431,6 +431,147 @@ print(group.model_dump())
 """
 ```
 
+### Hierarchy modelling 
+
+Multiple OME-NGFF multiscale groups can be stored together in Zarr groups.
+The OME-NGFF specification doesn't define explicit rules for such collections, so this library does not contain
+data structures to specifically model "Zarr group that contains OME-NGFF groups". But it is not hard to model this 
+using a combination of `pydantic-ome-ngff` and `pydantic-zarr`:
+
+```python
+from pydantic_zarr.v2 import GroupSpec
+from pydantic_ome_ngff.v04 import MultiscaleGroup, Axis
+from typing import Union, Any
+import numpy as np
+import zarr
+
+# define a model of a Zarr group that contains MultiscaleGroups
+# this relies on the fact that GroupSpec is generic with two 
+# type parameters. the first type parameter is for the attributes, 
+# which we set to `Any`, and the second type parameter is for the members of the group
+# which we set to the union of GroupSpec and MultiscaleGroup. 
+GroupOfMultiscales = GroupSpec[Any, Union[GroupSpec, MultiscaleGroup]]
+axes = [Axis(name='x', type='space'), Axis(name='y', type='space')]
+
+m_group_a = MultiscaleGroup.from_arrays(
+    arrays = [np.zeros((10,10))],
+    paths=['s0'],
+    axes=axes,
+    scales=[[1,1]],
+    translations=[[0,0]])
+
+m_group_b = MultiscaleGroup.from_arrays(
+    arrays = [np.zeros((20,20))],
+    paths=['s0'],
+    axes=axes,
+    scales=[[10,10]],
+    translations=[[5,5]])
+
+group_c = GroupSpec(attributes={'foo': 10})
+
+groups = {'a': m_group_a, 'b': m_group_b, 'c': group_c}
+
+store = zarr.MemoryStore()
+
+multi_image_group = GroupOfMultiscales(members=groups)
+zgroup = multi_image_group.to_zarr(store, path='multi_image_group')
+
+print(GroupOfMultiscales.from_zarr(zgroup).model_dump())
+"""
+{
+    'zarr_version': 2,
+    'attributes': {},
+    'members': {
+        'a': {
+            'zarr_version': 2,
+            'attributes': {
+                'multiscales': (
+                    {
+                        'version': '0.4',
+                        'name': None,
+                        'type': None,
+                        'metadata': None,
+                        'datasets': (
+                            {
+                                'path': 's0',
+                                'coordinateTransformations': (
+                                    {'type': 'scale', 'scale': (1, 1)},
+                                    {'type': 'translation', 'translation': (0, 0)},
+                                ),
+                            },
+                        ),
+                        'axes': (
+                            {'name': 'x', 'type': 'space', 'unit': None},
+                            {'name': 'y', 'type': 'space', 'unit': None},
+                        ),
+                        'coordinateTransformations': None,
+                    },
+                )
+            },
+            'members': {
+                's0': {
+                    'zarr_version': 2,
+                    'attributes': {},
+                    'shape': (10, 10),
+                    'chunks': (10, 10),
+                    'dtype': '<f8',
+                    'fill_value': 0.0,
+                    'order': 'C',
+                    'filters': None,
+                    'dimension_separator': '/',
+                    'compressor': {'id': 'zstd', 'level': 3},
+                }
+            },
+        },
+        'b': {
+            'zarr_version': 2,
+            'attributes': {
+                'multiscales': (
+                    {
+                        'version': '0.4',
+                        'name': None,
+                        'type': None,
+                        'metadata': None,
+                        'datasets': (
+                            {
+                                'path': 's0',
+                                'coordinateTransformations': (
+                                    {'type': 'scale', 'scale': (10, 10)},
+                                    {'type': 'translation', 'translation': (5, 5)},
+                                ),
+                            },
+                        ),
+                        'axes': (
+                            {'name': 'x', 'type': 'space', 'unit': None},
+                            {'name': 'y', 'type': 'space', 'unit': None},
+                        ),
+                        'coordinateTransformations': None,
+                    },
+                )
+            },
+            'members': {
+                's0': {
+                    'zarr_version': 2,
+                    'attributes': {},
+                    'shape': (20, 20),
+                    'chunks': (20, 20),
+                    'dtype': '<f8',
+                    'fill_value': 0.0,
+                    'order': 'C',
+                    'filters': None,
+                    'dimension_separator': '/',
+                    'compressor': {'id': 'zstd', 'level': 3},
+                }
+            },
+        },
+        'c': {'zarr_version': 2, 'attributes': {'foo': 10}, 'members': {}},
+    },
+}
+"""
+```
+
+
+
 ## Data validation
 
 This library attempts to detect invalid OME-NGFF containers and provide useful error messages when something is broken. The following examples illustrate a few ways in which OME-NGFF metadata can be broken, and what the error messages look like.
@@ -438,7 +579,7 @@ This library attempts to detect invalid OME-NGFF containers and provide useful e
 ```python
 from pydantic import ValidationError
 from pydantic_zarr.v2 import ArraySpec
-from pydantic_ome_ngff.v04.multiscale import Group
+from pydantic_ome_ngff.v04.multiscale import MultiscaleGroup
 from pydantic_ome_ngff.v04.axis import Axis
 import numpy as np
 
@@ -452,7 +593,7 @@ axes = (
 )
 
 # create a valid multiscale group
-group_model = Group.from_arrays(arrays, paths=paths, axes=axes, scales=scales, translations=translations)
+group_model = MultiscaleGroup.from_arrays(arrays, paths=paths, axes=axes, scales=scales, translations=translations)
 
 # convert that group to a dictionary, so we can break it
 group_model_missing_array = group_model.model_dump()
@@ -461,13 +602,13 @@ group_model_missing_array = group_model.model_dump()
 group_model_missing_array['members'].pop('s0')
 
 try:
-    Group(**group_model_missing_array)
+    MultiscaleGroup(**group_model_missing_array)
 except ValidationError as e:
     print(e)
     """
-    1 validation error for Group
+    1 validation error for MultiscaleGroup
       Value error, Dataset s0 was specified in multiscale metadata, but no array with that name was found in the hierarchy. All arrays referenced in multiscale metadata must be contained in the group. [type=value_error, input_value={'zarr_version': 2, 'attr...: 'zstd', 'level': 3}}}}, input_type=dict]
-        For further information visit https://errors.pydantic.dev/2.7/v/value_error
+        For further information visit https://errors.pydantic.dev/2.8/v/value_error
     """
 
 group_model_wrong_array = group_model.model_dump()
@@ -476,12 +617,12 @@ group_model_wrong_array = group_model.model_dump()
 group_model_wrong_array['members']['s0'] = ArraySpec.from_array(np.arange(10)).model_dump()
 
 try:
-    Group(**group_model_wrong_array)
+    MultiscaleGroup(**group_model_wrong_array)
 except ValidationError as e:
     print(e)
     """
-    1 validation error for Group
+    1 validation error for MultiscaleGroup
       Value error, Transform type='scale' scale=(1, 1) has dimensionality 2, which does not match the dimensionality of the array found in this group at s0 (1). Transform dimensionality must match array dimensionality. [type=value_error, input_value={'zarr_version': 2, 'attr...: 'zstd', 'level': 3}}}}, input_type=dict]
-        For further information visit https://errors.pydantic.dev/2.7/v/value_error
+        For further information visit https://errors.pydantic.dev/2.8/v/value_error
     """
 ```

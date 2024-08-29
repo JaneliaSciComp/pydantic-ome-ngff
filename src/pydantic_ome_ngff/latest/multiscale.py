@@ -33,14 +33,14 @@ class MultiscaleMetadata(msv04.MultiscaleMetadata):
     version: Literal["0.5-dev"] = version
 
 
-class GroupAttrs(msv04.GroupAttrs):
+class GroupAttrs(msv04.MultiscaleGroupAttrs):
     """
     Attributes of a multiscale group.
     See https://ngff.openmicroscopy.org/latest/#multiscale-md
     """
 
 
-class Group(msv04.Group):
+class Group(msv04.MultiscaleGroup):
     """
     A model of a Zarr group that implements OME-NGFF Multiscales metadata, version 0.5-dev.
 
