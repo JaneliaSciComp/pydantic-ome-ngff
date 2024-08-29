@@ -1,6 +1,6 @@
 # pydantic-ome-ngff
 
-[Pydantic](https://docs.pydantic.dev/latest/) models for [OME-NGFF](https://ngff.openmicroscopy.org/)
+[Pydantic](https://docs.pydantic.dev/latest/) models for [OME-NGFF](https://ngff.openmicroscopy.org/).
 
 # About
 
@@ -13,7 +13,7 @@ You can use this library to:
 
 See the [reading](#reading-a-multiscale-group) and [writing](#creating-a-multiscale-group) examples for basic usage. 
 
-The base Pydantic models for Zarr groups and arrays used in this library are defined in [`pydantic-zarr`](https://janelia-cellmap.github.io/pydantic-zarr/)
+The base Pydantic models for Zarr groups and arrays used in this library are defined in [`pydantic-zarr`](https://janelia-cellmap.github.io/pydantic-zarr/).
 
 ## Limitations
 
@@ -24,6 +24,8 @@ Version 0.4 of OME-NGFF has pretty extensive support, although my focus has been
 ### Array data
 
 This library only models the *structure* of a Zarr hierarchy, i.e. the layout of Zarr groups and arrays, and their metadata; it provides no functionality for efficiently reading or writing data from Zarr arrays. Use [`zarr-python`](https://github.com/zarr-developers/zarr-python) or [`tensorstore`](https://google.github.io/tensorstore/) for getting data in and out of Zarr arrays.
+
+I highly recommend representing OME-NGFF datasets with the tools provided in [`xarray`](https://docs.xarray.dev/en/stable/). To make this easier, I maintain a library to bridge OME-NGFF and xarray: [`xarray-ome-ngff`](https://janeliascicomp.github.io/xarray-ome-ngff/).
 
 # Examples
 
@@ -429,7 +431,7 @@ using a combination of `pydantic-ome-ngff` and `pydantic-zarr`:
 ```python
 from pydantic_zarr.v2 import GroupSpec
 from pydantic_ome_ngff.v04 import MultiscaleGroup, Axis
-from typing import Union, Any
+from typing import Any
 import numpy as np
 import zarr
 
@@ -438,7 +440,7 @@ import zarr
 # type parameters. the first type parameter is for the attributes, 
 # which we set to `Any`, and the second type parameter is for the members of the group
 # which we set to the union of GroupSpec and MultiscaleGroup. 
-GroupOfMultiscales = GroupSpec[Any, Union[GroupSpec, MultiscaleGroup]]
+GroupOfMultiscales = GroupSpec[Any, GroupSpec | MultiscaleGroup]
 axes = [Axis(name='x', type='space'), Axis(name='y', type='space')]
 
 m_group_a = MultiscaleGroup.from_arrays(
