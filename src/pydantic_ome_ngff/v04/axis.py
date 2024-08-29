@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from typing import Literal
 import warnings
 from enum import Enum
-
+from typing import Literal
 
 from pydantic_ome_ngff.base import FrozenBase, SkipNoneBase
 from pydantic_ome_ngff.v04.base import version

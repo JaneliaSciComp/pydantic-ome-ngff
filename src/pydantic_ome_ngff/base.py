@@ -1,7 +1,9 @@
 from __future__ import annotations
+
 from typing import Any, Callable
-from typing_extensions import Self
+
 import pydantic
+from typing_extensions import Self
 
 
 class FrozenBase(pydantic.BaseModel, frozen=True):

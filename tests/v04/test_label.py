@@ -1,9 +1,11 @@
 from __future__ import annotations
+
 from typing import Literal
+
 import pytest
 from pydantic import ValidationError
-from pydantic_ome_ngff.v04 import version as NGFF_VERSION
 
+from pydantic_ome_ngff.v04 import version as NGFF_VERSION
 from pydantic_ome_ngff.v04.label import Color, ImageLabel, Property
 
 

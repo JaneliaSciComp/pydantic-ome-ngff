@@ -1,6 +1,7 @@
 from __future__ import annotations
-from typing_extensions import Literal
+
 import pytest
+from typing_extensions import Literal
 
 from pydantic_ome_ngff.v04.axis import Axis
 from pydantic_ome_ngff.v04.multiscale import Dataset, MultiscaleMetadata
@@ -78,13 +79,12 @@ def test_transform_coordinate_transformations(
             assert len(new_ctx) == 1
         else:
             assert len(new_ctx) == 2
+    elif in_trans is None:
+        assert new_ctx[1] == old_ctx[1]
     else:
-        if in_trans is None:
-            assert new_ctx[1] == old_ctx[1]
-        else:
-            assert new_ctx[1] == VectorTranslation(
-                translation=tuple(a + b for a, b in zip(old_trans_norm, _new_trans))
-            )
+        assert new_ctx[1] == VectorTranslation(
+            translation=tuple(a + b for a, b in zip(old_trans_norm, _new_trans))
+        )
     if _new_scale is None:
         assert new_ctx[0] == old_ctx[0]
     else:
