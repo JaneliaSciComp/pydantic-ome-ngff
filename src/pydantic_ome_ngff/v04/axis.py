@@ -5,7 +5,7 @@ import warnings
 from enum import Enum
 
 
-from pydantic_ome_ngff.base import FrozenBase, NoneSkipBase
+from pydantic_ome_ngff.base import FrozenBase, SkipNoneBase
 from pydantic_ome_ngff.v04.base import version
 
 
@@ -123,7 +123,7 @@ def check_type_unit(model: Axis) -> Axis:
     return model
 
 
-class Axis(NoneSkipBase, FrozenBase):
+class Axis(SkipNoneBase, FrozenBase):
     """
     Axis metadata.
 

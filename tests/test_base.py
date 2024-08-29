@@ -1,6 +1,6 @@
 import pytest
 import pydantic
-from pydantic_ome_ngff.base import FrozenBase, VersionedBase, NoneSkipBase
+from pydantic_ome_ngff.base import FrozenBase, VersionedBase, SkipNoneBase
 
 
 def test_frozen_base() -> None:
@@ -19,7 +19,7 @@ def test_versioned_base() -> None:
 
 
 def test_noneskipbase() -> None:
-    class X(NoneSkipBase):
+    class X(SkipNoneBase):
         _skip_if_none = ("a", "b")
         a: int | None
         b: int

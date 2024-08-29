@@ -20,7 +20,7 @@ from zarr.errors import ArrayNotFoundError, ContainsGroupError
 from zarr.util import guess_chunks
 
 import pydantic_ome_ngff.v04.transform as tx
-from pydantic_ome_ngff.base import FrozenBase, NoneSkipBase, VersionedBase
+from pydantic_ome_ngff.base import FrozenBase, SkipNoneBase, VersionedBase
 from pydantic_ome_ngff.utils import (
     ArrayLike,
     ChunkedArrayLike,
@@ -184,7 +184,7 @@ def ensure_axis_types(axes: Sequence[Axis]) -> Sequence[Axis]:
     return axes
 
 
-class MultiscaleMetadata(VersionedBase, FrozenBase, NoneSkipBase):
+class MultiscaleMetadata(VersionedBase, FrozenBase, SkipNoneBase):
     """
     Multiscale image metadata.
 

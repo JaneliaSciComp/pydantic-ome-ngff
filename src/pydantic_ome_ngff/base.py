@@ -18,21 +18,21 @@ class VersionedBase(pydantic.BaseModel):
     _version: str = "0.0"
 
 
-class NoneSkipBase(pydantic.BaseModel):
+class SkipNoneBase(pydantic.BaseModel):
     _skip_if_none: tuple[str, ...] = ()
 
     @pydantic.model_serializer(mode="wrap")
     def serialize(
         self: Self,
-        serializer: Callable[[NoneSkipBase], dict[str, Any]],
+        serializer: Callable[[SkipNoneBase], dict[str, Any]],
         info: pydantic.SerializationInfo,
     ) -> dict[str, Any]:
         return skip_none(self, serializer, info)
 
 
 def skip_none(
-    self: NoneSkipBase,
-    serializer: Callable[[NoneSkipBase], dict[str, Any]],
+    self: SkipNoneBase,
+    serializer: Callable[[SkipNoneBase], dict[str, Any]],
     info: pydantic.SerializationInfo,
 ) -> dict[str, Any]:
     """
