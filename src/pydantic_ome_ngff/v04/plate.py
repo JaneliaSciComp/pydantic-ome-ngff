@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Union
-
 from pydantic import (
     BaseModel,
     NonNegativeInt,
@@ -54,7 +52,7 @@ class GroupAttrs(BaseModel):
     plate: PlateMetadata
 
 
-class Group(GroupSpec[GroupAttrs, Union[well.Group, GroupSpec, ArraySpec]]):
+class Group(GroupSpec[GroupAttrs, well.Group | GroupSpec | ArraySpec]):
     @field_validator("members", mode="after")
     @classmethod
     def contains_well_group(
