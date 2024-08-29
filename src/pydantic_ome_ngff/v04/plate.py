@@ -10,7 +10,7 @@ from pydantic import (
 from pydantic_zarr.v2 import ArraySpec, GroupSpec
 
 from pydantic_ome_ngff.base import VersionedBase
-from pydantic_ome_ngff.v04 import well
+from pydantic_ome_ngff.v04.well import WellGroup
 from pydantic_ome_ngff.v04.base import version
 
 
@@ -52,15 +52,15 @@ class GroupAttrs(BaseModel):
     plate: PlateMetadata
 
 
-class Group(GroupSpec[GroupAttrs, well.Group | GroupSpec | ArraySpec]):
+class Group(GroupSpec[GroupAttrs, WellGroup | GroupSpec | ArraySpec]):
     @field_validator("members", mode="after")
     @classmethod
     def contains_well_group(
-        cls, members: Group | GroupSpec | ArraySpec
-    ) -> Group | GroupSpec | ArraySpec:
+        cls, members: WellGroup | GroupSpec | ArraySpec
+    ) -> WellGroup | GroupSpec | ArraySpec:
         """
         Check that .members contains a WellGroup
         """
-        if not any(isinstance(v, well.Group) for v in members.values()):
+        if not any(isinstance(v, WellGroup) for v in members.values()):
             raise ValidationError
         return members
