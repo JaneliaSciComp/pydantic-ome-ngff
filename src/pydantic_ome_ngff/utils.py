@@ -8,6 +8,7 @@ import numpy as np
 if TYPE_CHECKING:
     from collections.abc import Hashable, Iterable
     from typing import Any
+
     from zarr.storage import BaseStore
 
 
@@ -49,5 +50,4 @@ def get_path(store: BaseStore) -> str:
     if hasattr(store, "path"):
         return store.path
 
-    else:
-        return ""
+    return ""

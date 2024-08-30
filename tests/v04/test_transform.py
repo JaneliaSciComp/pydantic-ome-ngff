@@ -1,7 +1,4 @@
 from __future__ import annotations
-
-from typing import Tuple, Type
-
 import pytest
 
 from pydantic_ome_ngff.v04.transform import (
@@ -24,7 +21,7 @@ from pydantic_ome_ngff.v04.transform import (
     ),
 )
 def test_scale_translation(
-    scale: Tuple[int, ...], translation: Tuple[int, ...]
+    scale: tuple[int, ...], translation: tuple[int, ...]
 ) -> None:
     if len(scale) == len(translation):
         result = scale_translation(scale=scale, translation=translation)
@@ -70,7 +67,7 @@ def test_ensure_dimensionality(
 @pytest.mark.parametrize("num_dims", ((1, 3, 5)))
 @pytest.mark.parametrize("transform", [VectorTranslation, VectorScale])
 def test_ndim(
-    num_dims: int, transform: Type[VectorTranslation] | Type[VectorScale]
+    num_dims: int, transform: type[VectorTranslation] | type[VectorScale]
 ) -> None:
     if transform == VectorScale:
         params = {"scale": (1,) * num_dims}

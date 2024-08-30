@@ -7,6 +7,7 @@ import numpy as np
 from typing_extensions import Literal, deprecated
 
 if TYPE_CHECKING:
+    import numpy.typing as npt
     from numcodecs.abc import Codec
     from typing_extensions import Self
 
@@ -439,7 +440,7 @@ class MultiscaleGroup(GroupSpec[MultiscaleGroupAttrs, ArraySpec | GroupSpec]):
     @classmethod
     def from_array_props(
         cls,
-        dtype: np.dtype[Any],
+        dtype: npt.DTypeLike,
         shapes: Sequence[Sequence[int]],
         paths: Sequence[str],
         axes: Sequence[Axis],
@@ -453,7 +454,7 @@ class MultiscaleGroup(GroupSpec[MultiscaleGroupAttrs, ArraySpec | GroupSpec]):
         | Literal["auto"] = "auto",
         compressor: Codec = DEFAULT_COMPRESSOR,
         fill_value: Any = 0,
-        order: Literal["C", "F", "auto"] = "auto",
+        order: Literal["C", "F"] = "C",
     ) -> Self:
         """
         Create a `MultiscaleGroup` from a dtype and a sequence of shapes.
@@ -493,10 +494,12 @@ class MultiscaleGroup(GroupSpec[MultiscaleGroupAttrs, ArraySpec | GroupSpec]):
             The memory layout used for chunks of Zarr arrays. The default is "C".
         """
 
+        dtype_normalized = np.dtype(dtype)
+
         chunks_normalized = normalize_chunks(
             chunks,
             shapes=tuple(tuple(s) for s in shapes),
-            typesizes=tuple(dtype.itemsize for s in shapes),
+            typesizes=tuple(dtype_normalized.itemsize for s in shapes),
         )
 
         members_flat = {
@@ -528,7 +531,6 @@ class MultiscaleGroup(GroupSpec[MultiscaleGroupAttrs, ArraySpec | GroupSpec]):
             members=GroupSpec.from_flat(members_flat).members,
             attributes=MultiscaleGroupAttrs(multiscales=(multimeta,)),
         )
-        return cls()
 
     @model_validator(mode="after")
     def check_arrays_exist(self) -> MultiscaleGroup:
