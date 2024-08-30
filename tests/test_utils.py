@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 if TYPE_CHECKING:
-    from typing import Any, List
+    from typing import Any
 
 import pytest
 
@@ -15,7 +15,7 @@ from pydantic_ome_ngff.utils import duplicates, listify_numpy
 @pytest.mark.parametrize(
     "data", [[0], [0, 1, 1, 1, 2], ["a", "a", "b", "b", "c", "c", "d"]]
 )
-def test_duplicates(data: List[Any]) -> None:
+def test_duplicates(data: list[Any]) -> None:
     dupes = duplicates(data)
     for key, value in dupes.items():
         assert data.count(key) == value

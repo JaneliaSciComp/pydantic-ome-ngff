@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import Literal
 
+    import numpy.typing as npt
     from zarr.storage import FSStore, MemoryStore, NestedDirectoryStore
 
 import operator
@@ -278,14 +279,6 @@ def test_multiscale_group_datasets_exist(
         ValidationError,
         match="array with that name was found in the hierarchy",
     ):
-        bad_items = {
-            d.path + "x": ArraySpec(
-                shape=(1, 1, 1, 1),
-                dtype="uint8",
-                chunks=(1, 1, 1, 1),
-            )
-            for d in default_multiscale.datasets
-        }
         MultiscaleGroup(attributes=group_attrs, members=bad_items)
 
 
@@ -312,15 +305,6 @@ def test_multiscale_group_datasets_rank(default_multiscale: MultiscaleMetadata) 
     }
     match = "Transform dimensionality must match array dimensionality."
     with pytest.raises(ValidationError, match=match):
-        # arrays with varying rank
-        bad_items = {
-            d.path: ArraySpec(
-                shape=(1,) * (idx + 1),
-                dtype="uint8",
-                chunks=(1,) * (idx + 1),
-            )
-            for idx, d in enumerate(default_multiscale.datasets)
-        }
         MultiscaleGroup(attributes=group_attrs, members=bad_items)
 
     # arrays with rank that doesn't match the transform
@@ -434,6 +418,7 @@ def test_from_arrays(
 
 @pytest.mark.parametrize("name", [None, "foo"])
 @pytest.mark.parametrize("type", [None, "foo"])
+@pytest.mark.parametrize("dtype", ["uint8", np.uint8])
 @pytest.mark.parametrize("path_pattern", ["{0}", "s{0}", "foo/{0}"])
 @pytest.mark.parametrize("metadata", [None, {"foo": 10}])
 @pytest.mark.parametrize("ndim", [2, 3, 4, 5])
@@ -441,20 +426,22 @@ def test_from_arrays(
 @pytest.mark.parametrize("order", ["C", "F"])
 def test_from_array_props(
     name: str | None,
+    dtype: npt.DTypeLike,
     type: str | None,
     path_pattern: str,
     metadata: dict[str, int] | None,
     ndim: int,
     chunks: Literal["auto", "tuple", "tuple-of-tuple"],
-    order: Literal["auto", "C", "F"],
+    order: Literal["C", "F"],
 ) -> None:
-    arrays = tuple(np.arange(x**ndim).reshape((x,) * ndim) for x in [3, 2, 1])
-    paths = tuple(path_pattern.format(idx) for idx in range(len(arrays)))
-    scales = tuple((2**idx,) * ndim for idx in range(len(arrays)))
+    shapes = tuple((x,) * ndim for x in [3, 2, 1])
+    dtype_normalized = np.dtype(dtype)
+    paths = tuple(path_pattern.format(idx) for idx in range(len(shapes)))
+    scales = tuple((2**idx,) * ndim for idx in range(len(shapes)))
     translations = tuple(
         (t,) * ndim
         for t in accumulate(
-            [(2 ** (idx - 1)) for idx in range(len(arrays))], operator.add
+            [(2 ** (idx - 1)) for idx in range(len(shapes))], operator.add
         )
     )
 
@@ -478,24 +465,21 @@ def test_from_array_props(
     chunks_arg: tuple[tuple[int, ...], ...] | tuple[int, ...] | Literal["auto"]
     if chunks == "auto":
         chunks_arg = chunks
-        chunks_expected = (
-            guess_chunks(arrays[0].shape, arrays[0].dtype.itemsize),
-        ) * len(arrays)
+        chunks_expected = (guess_chunks(shapes[0], dtype_normalized.itemsize),) * len(
+            shapes
+        )
     elif chunks == "tuple":
         chunks_arg = (2,) * ndim
-        chunks_expected = (chunks_arg,) * len(arrays)
+        chunks_expected = (chunks_arg,) * len(shapes)
     elif chunks == "tuple-of-tuple":
-        chunks_arg = tuple((idx,) * ndim for idx in range(1, len(arrays) + 1))
+        chunks_arg = tuple((idx,) * ndim for idx in range(1, len(shapes) + 1))
         chunks_expected = chunks_arg
 
-    if order == "auto":
-        order_expected = "C"
-    else:
-        order_expected = order
+    order_expected = order
 
     group = MultiscaleGroup.from_array_props(
-        dtype=arrays[0].dtype,
-        shapes=tuple(a.shape for a in arrays),
+        dtype=dtype,
+        shapes=shapes,
         paths=paths,
         axes=axes,
         scales=scales,
@@ -514,11 +498,11 @@ def test_from_array_props(
     assert group.attributes.multiscales[0].metadata == metadata
     assert group.attributes.multiscales[0].coordinateTransformations is None
     assert group.attributes.multiscales[0].axes == tuple(axes)
-    for idx, array in enumerate(arrays):
+    for idx, shape in enumerate(shapes):
         array_model: ArraySpec = group_flat["/" + paths[idx]]
         assert array_model.order == order_expected
-        assert array.shape == array_model.shape
-        assert array.dtype == array_model.dtype
+        assert shape == array_model.shape
+        assert dtype_normalized == array_model.dtype
         assert chunks_expected[idx] == array_model.chunks
         assert group.attributes.multiscales[0].datasets[
             idx
