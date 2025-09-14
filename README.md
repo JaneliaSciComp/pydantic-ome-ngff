@@ -1,4 +1,9 @@
 # pydantic-ome-ngff
+
+> [!IMPORTANT]
+> this project is archived!
+> see [ome-zarr-models-py](https://ome-zarr-models-py.readthedocs.io/en/stable/) for a contemporary replacement.
+
 ## about
 Pydantic models for [OME-NGFF](https://ngff.openmicroscopy.org/) metadata. Version [0.4](https://ngff.openmicroscopy.org/0.4/index.html) is supported. Read the documentation for the latest release [here](https://janeliascicomp.github.io/pydantic-ome-ngff/).
 
